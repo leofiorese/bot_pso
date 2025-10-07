@@ -1,5 +1,4 @@
 # main.py
-
 import os
 import logging
 import re
@@ -10,11 +9,9 @@ from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from dotenv import load_dotenv
 from pathlib import Path
 import time
+import importlib
 
-# Carregar variáveis de ambiente
 load_dotenv()
-
-# ---------- CONFIG ----------
 
 LOGIN_URL  = os.getenv("PSO_LOGIN_URL")
 REPORT_URL = os.getenv("PSO_REPORT_URL")
@@ -29,11 +26,12 @@ DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 MAX_RETRIES = 3
 LOGFILE = "pso_bot.log"
 
-# Seletores e outras configurações
+# Seletores
 SEL_COOKIE_OK      = "text=OK, entendi."
 SEL_LOGIN_INPUT    = "input[placeholder='Login']"
 SEL_PASSWORD_INPUT = "input[placeholder='Senha']"
 SEL_SUBMIT_BTN     = "input[type='submit']"
+SEL_TEXTAREA       = "textarea[name='QUERY']"  # Atualize o seletor do campo de texto
 SEL_TESTAR_EXCEL   = "div#tit_buttons input[type='submit'][name='button_Testar2'][value='Testar (EXCEL)']"
 
 logging.basicConfig(level=logging.INFO, filename=LOGFILE,
@@ -41,6 +39,22 @@ logging.basicConfig(level=logging.INFO, filename=LOGFILE,
 
 def _sanitize(name: str) -> str:
     return re.sub(r"[^\w\-.]", "_", name)
+
+def load_script():
+    """
+    Carrega o conteúdo do arquivo 'rel_script.py' e retorna o valor da variável script_sql.
+    """
+    script_path = Path('app/rel_script.py')
+
+    if script_path.exists():
+        # Carregar o módulo do arquivo rel_script.py
+        spec = importlib.util.spec_from_file_location("rel_script", script_path)
+        rel_script = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(rel_script)
+        return rel_script.script_sql_modified
+    else:
+        logging.error("Arquivo 'rel_script.py' não encontrado!")
+        raise FileNotFoundError(f"O arquivo 'rel_script.py' não foi encontrado em {script_path}")
 
 def do_login(page):
     logging.info("Abrindo tela de login...")
@@ -72,11 +86,41 @@ def do_login(page):
     except PWTimeoutError:
         logging.warning("Não confirmou elemento pós-login; prosseguindo assim mesmo.")
 
+
+def get_dateadd_value():
+    """
+    Pergunta ao usuário se deseja usar uma data personalizada.
+    """
+    while True:
+        custom_date_input = input("Deseja usar uma data personalizada? (sim/não): ").strip().lower()
+        if custom_date_input == "não":
+            return '-1'  # Valor padrão se não for personalizado
+        elif custom_date_input == "sim":
+            try:
+                # Pergunta para o usuário qual valor de data ele deseja
+                days_input = input("Informe o número de dias (valor positivo, o sistema aplicará o negativo): ").strip()
+                return f'-{days_input}'  # Converte para negativo para o SQL
+            except ValueError:
+                print("Por favor, insira um número válido para o número de dias.")
+        else:
+            print("Resposta inválida. Responda com 'sim' ou 'não'.")
+
 def goto_report(page):
     logging.info("Indo para tela de relatório...")
     page.goto(REPORT_URL, timeout=60_000)
     page.wait_for_load_state("networkidle")
 
+    logging.info("Esperando textarea ficar disponível...")
+    page.wait_for_selector(SEL_TEXTAREA, state="visible", timeout=60_000)
+
+    # Carregar o script_sql do arquivo rel_script.py
+    script_sql = load_script()
+
+    # Preenche a área de texto com o conteúdo do script_sql
+    logging.info("Preenchendo a área de texto com o conteúdo do script SQL...")
+    page.locator(SEL_TEXTAREA).fill(script_sql)
+
+    # Espera o botão "Testar (EXCEL)" ficar visível e clicável
     logging.info("Esperando botão 'Testar (EXCEL)' ficar disponível...")
     page.wait_for_selector(SEL_TESTAR_EXCEL, state="visible", timeout=60_000)
 
@@ -105,7 +149,7 @@ def goto_report(page):
 
     logging.info(f"Download salvo: {target}")
 
-    print(f"✅ Download concluído: {target}")
+    print(f"Download concluído: {target}")
 
     return target
 
@@ -119,20 +163,19 @@ def run_once():
             do_login(page)
             csv_file_path = goto_report(page)
 
-            # Processa o CSV
             df = process_csv(csv_file_path)
-            # Realiza o Upsert dos dados no banco
+        
             upsert_data(df, "RELATORIO_PSO")
         
         finally:
             context.close(); browser.close()
 
 def main():
-    # Verificando se todas as variáveis de ambiente necessárias estão presentes
     if not all([LOGIN_URL, REPORT_URL, USERNAME, PASSWORD]):
         raise SystemExit("Defina PSO_LOGIN_URL, PSO_REPORT_URL, PSO_USERNAME e PSO_PASSWORD no .env")
 
     last = None
+
     for i in range(1, MAX_RETRIES + 1):
         try:
             run_once()
