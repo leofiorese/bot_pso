@@ -49,11 +49,19 @@ CREATE TABLE IF NOT EXISTS `RELATORIO_PSO` (
     `TRABALHO_FALTANDO_PROJETO` DECIMAL(10, 2),
     `TRABALHO_PREVISTO_PROJETO` DECIMAL(10, 2),
     `TRABALHO_REALIZADO_PROJETO` DECIMAL(10, 2),
-    `VALOR_PROJETO` DECIMAL(10, 2),
+    `VALOR_PROJETO` DECIMAL(20, 2),
     `HORAS` DECIMAL(10, 2),
     `CUSTO_APONT` DECIMAL(10, 2),
+
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
     PRIMARY KEY (`APON_ID`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) 
+
+ENGINE=InnoDB 
+DEFAULT CHARSET=utf8mb4 
+COLLATE=utf8mb4_unicode_ci;
 """
 
 UPSERT_SQL = """
@@ -137,15 +145,15 @@ def convert_date(value):
 
 def clean_data(value, column_name):
     
-    if column_name in ["VALOR_PROJETO"]:
-        try:
-            value = float(value)
-            if value > 99999999.99:
-                logging.warning(f"Valor de VALOR_PROJETO ({value}) excede o limite permitido e será ajustado para 99999999.99.")
-                return 99999999.99  
-            return value
-        except (ValueError, TypeError):
-            return None  
+    # if column_name in ["VALOR_PROJETO"]:
+    #     try:
+    #         value = float(value)
+    #         if value > 99999999.99:
+    #             logging.warning(f"Valor de VALOR_PROJETO ({value}) excede o limite permitido e será ajustado para 99999999.99.")
+    #             return 99999999.99  
+    #         return value
+    #     except (ValueError, TypeError):
+    #         return None  
 
     # if column_name in ["DURACAO_PREVISTA", "TRABALHO_APONTADO_ATIVIDADE", "TRABALHO_FALTANDO_ATIVIDADE", "TRABALHO_PREVISTO_ATIVIDADE", "TRABALHO_REALIZADO_ATIVIDADE"] and (value == '' or pd.isna(value) or value == None or value == "" or value == pd.isnull(value)):
     #     return None
