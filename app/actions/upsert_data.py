@@ -3,7 +3,6 @@ import pandas as pd
 from app.db.db import get_conn
 from datetime import datetime
 
-# Colunas da tabela, conforme fornecido
 TABLE_COLUMNS = [
     "APON_ID","USU_ID", "ATIVO", "EMAIL", "NOME_USUARIO", "SIGLA", "TAXA_ID_CUS", "ATIV_ID",
     "DT_INICIO_APONTAMENTO", "MINUTOS", "PROJ_ID", "STATUS", "VALOR", "DT_EFETIVA",
@@ -116,25 +115,24 @@ ON DUPLICATE KEY UPDATE
 """
 
 def create_table(cursor, table_name):
-    """
-    Cria a tabela no banco de dados, se não existir.
-    """
+
     try:
         cursor.execute(CREATE_TABLE_SQL)
         logging.info(f"Tabela {table_name} criada/verificada.")
+    
     except Exception as e:
         logging.error(f"Erro ao criar/verificar a tabela: {e}")
         raise
 
 def convert_date(value):
-    """
-    Converte datas para o formato correto 'YYYY-MM-DD' para o MySQL.
-    """
+
     if isinstance(value, str):
         try:
             return datetime.strptime(value, '%d/%m/%Y').strftime('%Y-%m-%d')
+        
         except ValueError:
-            return None  # Retorna None se não for uma data válida
+            return None  
+    
     return value
 
 def clean_data(value, column_name):
@@ -144,31 +142,32 @@ def clean_data(value, column_name):
             value = float(value)
             if value > 99999999.99:
                 logging.warning(f"Valor de VALOR_PROJETO ({value}) excede o limite permitido e será ajustado para 99999999.99.")
-                return 99999999.99  # Ajusta para o limite máximo
+                return 99999999.99  
             return value
         except (ValueError, TypeError):
-            return None  # Se não for um número válido, retorna None   
+            return None  
 
-    if column_name in ["DURACAO_PREVISTA", "TRABALHO_APONTADO_ATIVIDADE", "TRABALHO_FALTANDO_ATIVIDADE", "TRABALHO_PREVISTO_ATIVIDADE", "TRABALHO_REALIZADO_ATIVIDADE"]:
-        return None
+    # if column_name in ["DURACAO_PREVISTA", "TRABALHO_APONTADO_ATIVIDADE", "TRABALHO_FALTANDO_ATIVIDADE", "TRABALHO_PREVISTO_ATIVIDADE", "TRABALHO_REALIZADO_ATIVIDADE"] and (value == '' or pd.isna(value) or value == None or value == "" or value == pd.isnull(value)):
+    #     return None
 
     if column_name in ["ATIVO", "IND_APO_BLOQUEADO", "IND_APROVADA", "IND_ENCERRADA"]:
-        # Converte 'Y' para 1 e 'N' para 0
+        
         if value == 'Y':
             return 1
+        
         elif value == 'N':
             return 0
+    
     if column_name in ["DT_INICIO_APONTAMENTO", "DT_EFETIVA", "B_DT_FIM_ATIVIDADE", "B_DT_INICIO_ATIVIDADE", "DT_FIM_ATIVIDADE", "DT_INICIO_ATIVIDADE", "DT_FIM_PROJETO", "DT_INICIO_PROJETO"]:
         return convert_date(value)
 
-    if pd.isna(value) or value == None:
-        return None  # Converte 'nan' ou NaN para None
+    if value == '' or pd.isna(value) or value == "" or value == pd.isnull(value):
+        return None 
+    
     return value
 
 def upsert_data(df: pd.DataFrame, table_name: str):
-    """
-    Faz o upsert dos dados no banco de dados.
-    """
+
     conn = None
     cursor = None
 
@@ -176,22 +175,19 @@ def upsert_data(df: pd.DataFrame, table_name: str):
         conn = get_conn()
         cursor = conn.cursor()
 
-        # Cria a tabela se ela não existir
+        
         create_table(cursor, table_name)
 
-        # Substituir valores NaN por None (NULL no banco de dados) e formatar datas
         logging.info(f"Substituindo valores NaN por None e formatando datas...")
 
-        # Aplica a limpeza e a conversão das colunas
+        
         for column in df.columns:
             df[column] = df[column].apply(lambda x: clean_data(x, column))
 
-        # Log para verificar se algum valor foi convertido para None (NULL)
         for col in df.columns:
             if df[col].isnull().any():
                 logging.warning(f"A coluna '{col}' contém valores nulos (NaN) que serão convertidos para NULL no banco.")
 
-        # Inserir ou atualizar os dados
         for _, row in df.iterrows():
             data_tuple = row.to_dict()
             cursor.execute(UPSERT_SQL, data_tuple)
@@ -201,12 +197,16 @@ def upsert_data(df: pd.DataFrame, table_name: str):
 
     except Exception as e:
         logging.error(f"Erro no upsert: {e}")
+        
         if conn:
             conn.rollback()
+        
         raise
 
     finally:
+        
         if cursor:
             cursor.close()
+        
         if conn:
             conn.close()

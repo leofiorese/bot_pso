@@ -1,32 +1,22 @@
 # app/panda_actions/process_csv.py
 import logging
 import pandas as pd
+from upsert_data import TABLE_COLUMNS   
 
 def process_csv(file_path: str) -> pd.DataFrame:
-    """
-    Processa o arquivo CSV, garantindo que ele tenha cabeçalhos adequados e o formato correto.
-    """
     logging.info(f"Lendo arquivo CSV: {file_path}...")
 
     try:
-        # Verificar as primeiras linhas do CSV para diagnóstico
-        with open(file_path, 'r', encoding='latin1') as f:
-            lines = [f.readline() for _ in range(5)]  # Lê as primeiras 5 linhas
-            logging.info(f"Primeiras 5 linhas do arquivo CSV:\n{''.join(lines)}")
-
-        # Tenta ler o CSV com um delimitador comum (`,` ou `;`)
+    
         df = pd.read_csv(file_path, delimiter=";", encoding='latin1')
 
-        # Verifica o número de colunas lidas
+        len_db = len(TABLE_COLUMNS)
+
         logging.info(f"Arquivo CSV lido com sucesso. Total de colunas: {len(df.columns)}")
 
-        # Verifica se o número de colunas corresponde ao esperado (36)
         if len(df.columns) != 36:
-            logging.error(f"Erro: o número de colunas no CSV ({len(df.columns)}) não corresponde ao número esperado (35).")
-            raise ValueError(f"O número de colunas no CSV ({len(df.columns)}) não corresponde ao número esperado (35).")
-
-        # Exibe as primeiras 5 linhas do DataFrame para validação
-        logging.info(f"Primeiras 5 linhas do DataFrame:\n{df.head()}")
+            logging.error(f"Erro: o número de colunas no CSV ({len(df.columns)}) não corresponde ao número esperado ({len_db}).")
+            raise ValueError(f"O número de colunas no CSV ({len(df.columns)}) não corresponde ao número esperado ({len_db}).")
 
         return df
     
