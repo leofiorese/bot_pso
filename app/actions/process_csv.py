@@ -10,12 +10,12 @@ def process_csv(file_path: str) -> pd.DataFrame:
 
     try:
         # Verificar as primeiras linhas do CSV para diagnóstico
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r', encoding='latin1') as f:
             lines = [f.readline() for _ in range(5)]  # Lê as primeiras 5 linhas
             logging.info(f"Primeiras 5 linhas do arquivo CSV:\n{''.join(lines)}")
 
         # Tenta ler o CSV com um delimitador comum (`,` ou `;`)
-        df = pd.read_csv(file_path, delimiter=";", encoding='utf-8')
+        df = pd.read_csv(file_path, delimiter=";", encoding='latin1')
 
         # Verifica o número de colunas lidas
         logging.info(f"Arquivo CSV lido com sucesso. Total de colunas: {len(df.columns)}")
