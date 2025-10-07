@@ -5,7 +5,7 @@ from datetime import datetime
 
 # Colunas da tabela, conforme fornecido
 TABLE_COLUMNS = [
-    "USU_ID", "ATIVO", "EMAIL", "NOME_USUARIO", "SIGLA", "TAXA_ID_CUS", "ATIV_ID",
+    "APON_ID","USU_ID", "ATIVO", "EMAIL", "NOME_USUARIO", "SIGLA", "TAXA_ID_CUS", "ATIV_ID",
     "DT_INICIO_APONTAMENTO", "MINUTOS", "PROJ_ID", "STATUS", "VALOR", "DT_EFETIVA",
     "B_DT_FIM_ATIVIDADE", "B_DT_INICIO_ATIVIDADE", "DT_FIM_ATIVIDADE", "DT_INICIO_ATIVIDADE",
     "DURACAO_PREVISTA", "IND_APO_BLOQUEADO", "IND_APROVADA", "IND_ENCERRADA",
@@ -17,6 +17,7 @@ TABLE_COLUMNS = [
 
 CREATE_TABLE_SQL = """
 CREATE TABLE IF NOT EXISTS `RELATORIO_PSO` (
+    `APON_ID` INT,
     `USU_ID` INT,
     `ATIVO` BOOLEAN,
     `EMAIL` VARCHAR(255),
@@ -52,13 +53,13 @@ CREATE TABLE IF NOT EXISTS `RELATORIO_PSO` (
     `VALOR_PROJETO` DECIMAL(10, 2),
     `HORAS` DECIMAL(10, 2),
     `CUSTO_APONT` DECIMAL(10, 2),
-    PRIMARY KEY (`USU_ID`)
+    PRIMARY KEY (`APON_ID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 """
 
 UPSERT_SQL = """
 INSERT INTO RELATORIO_PSO (
-  USU_ID, ATIVO, EMAIL, NOME_USUARIO, SIGLA, TAXA_ID_CUS, ATIV_ID,
+  APON_ID, USU_ID, ATIVO, EMAIL, NOME_USUARIO, SIGLA, TAXA_ID_CUS, ATIV_ID,
   DT_INICIO_APONTAMENTO, MINUTOS, PROJ_ID, STATUS, VALOR, DT_EFETIVA,
   B_DT_FIM_ATIVIDADE, B_DT_INICIO_ATIVIDADE, DT_FIM_ATIVIDADE, DT_INICIO_ATIVIDADE,
   DURACAO_PREVISTA, IND_APO_BLOQUEADO, IND_APROVADA, IND_ENCERRADA,
@@ -67,7 +68,7 @@ INSERT INTO RELATORIO_PSO (
   TRABALHO_APONTADO_PROJETO, TRABALHO_FALTANDO_PROJETO, TRABALHO_PREVISTO_PROJETO,
   TRABALHO_REALIZADO_PROJETO, VALOR_PROJETO, HORAS, CUSTO_APONT
 ) VALUES (
-  %(USU_ID)s, %(ATIVO)s, %(EMAIL)s, %(NOME_USUARIO)s, %(SIGLA)s, %(TAXA_ID_CUS)s, %(ATIV_ID)s,
+  %(APON_ID)s, %(USU_ID)s, %(ATIVO)s, %(EMAIL)s, %(NOME_USUARIO)s, %(SIGLA)s, %(TAXA_ID_CUS)s, %(ATIV_ID)s,
   %(DT_INICIO_APONTAMENTO)s, %(MINUTOS)s, %(PROJ_ID)s, %(STATUS)s, %(VALOR)s, %(DT_EFETIVA)s,
   %(B_DT_FIM_ATIVIDADE)s, %(B_DT_INICIO_ATIVIDADE)s, %(DT_FIM_ATIVIDADE)s, %(DT_INICIO_ATIVIDADE)s,
   %(DURACAO_PREVISTA)s, %(IND_APO_BLOQUEADO)s, %(IND_APROVADA)s, %(IND_ENCERRADA)s,
@@ -77,6 +78,7 @@ INSERT INTO RELATORIO_PSO (
   %(TRABALHO_REALIZADO_PROJETO)s, %(VALOR_PROJETO)s, %(HORAS)s, %(CUSTO_APONT)s
 )
 ON DUPLICATE KEY UPDATE
+  USU_ID = VALUES(USU_ID),
   ATIVO = VALUES(ATIVO),
   EMAIL = VALUES(EMAIL),
   NOME_USUARIO = VALUES(NOME_USUARIO),
@@ -115,7 +117,7 @@ ON DUPLICATE KEY UPDATE
 
 def create_table(cursor, table_name):
     """
-    Cria a tabela no banco de dados se ela não existir.
+    Cria a tabela no banco de dados, se não existir.
     """
     try:
         cursor.execute(CREATE_TABLE_SQL)
@@ -132,39 +134,62 @@ def convert_date(value):
         try:
             return datetime.strptime(value, '%d/%m/%Y').strftime('%Y-%m-%d')
         except ValueError:
-            return value  # Não converte se não for uma data válida
+            return None  # Retorna None se não for uma data válida
     return value
 
 def clean_data(value, column_name):
+    
+    if column_name in ["VALOR_PROJETO"]:
+        try:
+            value = float(value)
+            if value > 99999999.99:
+                logging.warning(f"Valor de VALOR_PROJETO ({value}) excede o limite permitido e será ajustado para 99999999.99.")
+                return 99999999.99  # Ajusta para o limite máximo
+            return value
+        except (ValueError, TypeError):
+            return None  # Se não for um número válido, retorna None   
+
+    if column_name in ["DURACAO_PREVISTA", "TRABALHO_APONTADO_ATIVIDADE", "TRABALHO_FALTANDO_ATIVIDADE", "TRABALHO_PREVISTO_ATIVIDADE", "TRABALHO_REALIZADO_ATIVIDADE"]:
+        return None
+
+    if column_name in ["ATIVO", "IND_APO_BLOQUEADO", "IND_APROVADA", "IND_ENCERRADA"]:
+        # Converte 'Y' para 1 e 'N' para 0
+        if value == 'Y':
+            return 1
+        elif value == 'N':
+            return 0
     if column_name in ["DT_INICIO_APONTAMENTO", "DT_EFETIVA", "B_DT_FIM_ATIVIDADE", "B_DT_INICIO_ATIVIDADE", "DT_FIM_ATIVIDADE", "DT_INICIO_ATIVIDADE", "DT_FIM_PROJETO", "DT_INICIO_PROJETO"]:
-        # Para colunas de data, converte usando a função de conversão
         return convert_date(value)
+
+    if pd.isna(value) or value == None:
+        return None  # Converte 'nan' ou NaN para None
     return value
 
 def upsert_data(df: pd.DataFrame, table_name: str):
     """
-    Insere ou atualiza os dados no banco de dados MySQL.
-    Se o registro já existir, ele será atualizado, caso contrário, será inserido.
+    Faz o upsert dos dados no banco de dados.
     """
     conn = None
     cursor = None
-    
+
     try:
-        # Conectar ao banco de dados
         conn = get_conn()
         cursor = conn.cursor()
 
-        # Cria a tabela caso não exista
+        # Cria a tabela se ela não existir
         create_table(cursor, table_name)
 
         # Substituir valores NaN por None (NULL no banco de dados) e formatar datas
         logging.info(f"Substituindo valores NaN por None e formatando datas...")
-        df = df.applymap(lambda x: clean_data(x, df.columns[df.columns.get_loc(x.name)]) if isinstance(x, str) else (None if pd.isna(x) else convert_date(x) if isinstance(x, str) else x))  # Limpar e tratar dados de acordo com a coluna
 
-        # Verificar e logar se há algum valor `None` ou `NaN` que poderia gerar erro
+        # Aplica a limpeza e a conversão das colunas
+        for column in df.columns:
+            df[column] = df[column].apply(lambda x: clean_data(x, column))
+
+        # Log para verificar se algum valor foi convertido para None (NULL)
         for col in df.columns:
             if df[col].isnull().any():
-                logging.warning(f"A coluna '{col}' possui valores nulos (NaN) que serão convertidos para NULL no banco.")
+                logging.warning(f"A coluna '{col}' contém valores nulos (NaN) que serão convertidos para NULL no banco.")
 
         # Inserir ou atualizar os dados
         for _, row in df.iterrows():
@@ -173,13 +198,13 @@ def upsert_data(df: pd.DataFrame, table_name: str):
 
         conn.commit()
         logging.info(f"Upsert realizado com sucesso na tabela {table_name}.")
-    
+
     except Exception as e:
         logging.error(f"Erro no upsert: {e}")
         if conn:
             conn.rollback()
         raise
-    
+
     finally:
         if cursor:
             cursor.close()
