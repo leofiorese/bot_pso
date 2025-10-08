@@ -41,17 +41,16 @@ def _sanitize(name: str) -> str:
     return re.sub(r"[^\w\-.]", "_", name)
 
 def load_script():
-    """
-    Carrega o conteúdo do arquivo 'rel_script.py' e retorna o valor da variável script_sql.
-    """
     script_path = Path('app/rel_script.py')
 
     if script_path.exists():
-        # Carregar o módulo do arquivo rel_script.py
+       
         spec = importlib.util.spec_from_file_location("rel_script", script_path)
         rel_script = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(rel_script)
+
         return rel_script.script_sql_modified
+    
     else:
         logging.error("Arquivo 'rel_script.py' não encontrado!")
         raise FileNotFoundError(f"O arquivo 'rel_script.py' não foi encontrado em {script_path}")
@@ -62,6 +61,7 @@ def do_login(page):
 
     try:
         page.locator(SEL_COOKIE_OK).click(timeout=3_000)
+    
     except PWTimeoutError:
         pass
 
@@ -74,6 +74,7 @@ def do_login(page):
     try:
         logging.info("Clicando no botão 'Entrar'...")
         page.locator(SEL_SUBMIT_BTN).click()
+    
     except PWTimeoutError:
         logging.error("Timeout ao clicar no botão 'Entrar'.")
         raise
@@ -83,26 +84,28 @@ def do_login(page):
 
     try:
         page.wait_for_selector("text=Release Notes", timeout=15_000)
+    
     except PWTimeoutError:
         logging.warning("Não confirmou elemento pós-login; prosseguindo assim mesmo.")
 
 
 def get_dateadd_value():
-    """
-    Pergunta ao usuário se deseja usar uma data personalizada.
-    """
     while True:
         custom_date_input = input("Deseja usar uma data personalizada? (sim/não): ").strip().lower()
         if custom_date_input == "não":
-            return '-1'  # Valor padrão se não for personalizado
+            return '-1'  
+        
         elif custom_date_input == "sim":
             try:
-                # Pergunta para o usuário qual valor de data ele deseja
+                
                 days_input = input("Informe o número de dias (valor positivo, o sistema aplicará o negativo): ").strip()
-                days_input = int(days_input)  # Verifica se é um número válido
-                return f'-{days_input}'  # Converte para negativo para o SQL
+                days_input = int(days_input) 
+
+                return f'-{days_input}' 
+            
             except ValueError:
                 print("Por favor, insira um número válido para o número de dias.")
+        
         else:
             print("Resposta inválida. Responda com 'sim' ou 'não'.")
 
@@ -114,14 +117,11 @@ def goto_report(page):
     logging.info("Esperando textarea ficar disponível...")
     page.wait_for_selector(SEL_TEXTAREA, state="visible", timeout=60_000)
 
-    # Carregar o script_sql do arquivo rel_script.py
     script_sql = load_script()
 
-    # Preenche a área de texto com o conteúdo do script_sql
     logging.info("Preenchendo a área de texto com o conteúdo do script SQL...")
     page.locator(SEL_TEXTAREA).fill(script_sql)
 
-    # Espera o botão "Testar (EXCEL)" ficar visível e clicável
     logging.info("Esperando botão 'Testar (EXCEL)' ficar disponível...")
     page.wait_for_selector(SEL_TESTAR_EXCEL, state="visible", timeout=60_000)
 
@@ -136,6 +136,7 @@ def goto_report(page):
     try:
         logging.info("Clicando no botão 'Testar (EXCEL)'...")
         page.locator(SEL_TESTAR_EXCEL).click()
+    
     except PWTimeoutError:
         logging.error("Timeout ao clicar no botão 'Testar (EXCEL)'.")
         raise
@@ -145,6 +146,7 @@ def goto_report(page):
 
     d = d_info.value
     suggested = d.suggested_filename or "relatorio.xlsx"
+
     target = DOWNLOAD_DIR / f"{time.strftime('%Y%m%d_%H%M%S')}_{_sanitize(suggested)}"
     d.save_as(str(target))
 
@@ -165,9 +167,9 @@ def run_once():
             csv_file_path = goto_report(page)
 
             df = process_csv(csv_file_path)
-        
-            upsert_data(df, "RELATORIO_PSO")
-        
+
+            upsert_data(df, "RELATORIO_PSO", csv_file_path)
+
         finally:
             context.close(); browser.close()
 
@@ -181,6 +183,7 @@ def main():
         try:
             run_once()
             return
+        
         except Exception as e:
             last = e
             logging.exception(f"Tentativa {i} falhou")

@@ -2,6 +2,7 @@ import logging
 import pandas as pd
 from app.db.db import get_conn
 from datetime import datetime
+import os
 
 TABLE_COLUMNS = [
     "APON_ID","USU_ID", "ATIVO", "EMAIL", "NOME_USUARIO", "SIGLA", "TAXA_ID_CUS", "ATIV_ID",
@@ -145,19 +146,6 @@ def convert_date(value):
 
 def clean_data(value, column_name):
     
-    # if column_name in ["VALOR_PROJETO"]:
-    #     try:
-    #         value = float(value)
-    #         if value > 99999999.99:
-    #             logging.warning(f"Valor de VALOR_PROJETO ({value}) excede o limite permitido e será ajustado para 99999999.99.")
-    #             return 99999999.99  
-    #         return value
-    #     except (ValueError, TypeError):
-    #         return None  
-
-    # if column_name in ["DURACAO_PREVISTA", "TRABALHO_APONTADO_ATIVIDADE", "TRABALHO_FALTANDO_ATIVIDADE", "TRABALHO_PREVISTO_ATIVIDADE", "TRABALHO_REALIZADO_ATIVIDADE"] and (value == '' or pd.isna(value) or value == None or value == "" or value == pd.isnull(value)):
-    #     return None
-
     if column_name in ["ATIVO", "IND_APO_BLOQUEADO", "IND_APROVADA", "IND_ENCERRADA"]:
         
         if value == 'Y':
@@ -174,7 +162,7 @@ def clean_data(value, column_name):
     
     return value
 
-def upsert_data(df: pd.DataFrame, table_name: str):
+def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
 
     conn = None
     cursor = None
@@ -208,6 +196,10 @@ def upsert_data(df: pd.DataFrame, table_name: str):
 
         conn.commit()
         logging.info(f"Upsert realizado com sucesso na tabela {table_name}.")
+
+        if os.path.exists(csv_file_path):
+            os.remove(csv_file_path)
+            logging.info(f"Arquivo CSV {csv_file_path} excluído com sucesso.")
 
     except Exception as e:
         logging.error(f"Erro no upsert: {e}")
