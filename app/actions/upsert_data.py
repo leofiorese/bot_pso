@@ -158,6 +158,9 @@ def clean_data(value, column_name):
     # if column_name in ["DURACAO_PREVISTA", "TRABALHO_APONTADO_ATIVIDADE", "TRABALHO_FALTANDO_ATIVIDADE", "TRABALHO_PREVISTO_ATIVIDADE", "TRABALHO_REALIZADO_ATIVIDADE"] and (value == '' or pd.isna(value) or value == None or value == "" or value == pd.isnull(value)):
     #     return None
 
+    if value == '' or pd.isna(value) or value == "" or value == pd.isnull(value):
+        return None
+
     if column_name in ["ATIVO", "IND_APO_BLOQUEADO", "IND_APROVADA", "IND_ENCERRADA"]:
         
         if value == 'Y':
@@ -168,9 +171,6 @@ def clean_data(value, column_name):
     
     if column_name in ["DT_INICIO_APONTAMENTO", "DT_EFETIVA", "B_DT_FIM_ATIVIDADE", "B_DT_INICIO_ATIVIDADE", "DT_FIM_ATIVIDADE", "DT_INICIO_ATIVIDADE", "DT_FIM_PROJETO", "DT_INICIO_PROJETO"]:
         return convert_date(value)
-
-    if value == '' or pd.isna(value) or value == "" or value == pd.isnull(value):
-        return None 
     
     return value
 
@@ -188,13 +188,12 @@ def upsert_data(df: pd.DataFrame, table_name: str):
 
         logging.info(f"Substituindo valores NaN por None e formatando datas...")
 
-        
-        for column in df.columns:
-            df[column] = df[column].apply(lambda x: clean_data(x, column))
-
         for col in df.columns:
             if df[col].isnull().any():
                 logging.warning(f"A coluna '{col}' contém valores nulos (NaN) que serão convertidos para NULL no banco.")
+
+        for column in df.columns:
+            df[column] = df[column].apply(lambda x: clean_data(x, column))
 
         for _, row in df.iterrows():
             data_tuple = row.to_dict()
