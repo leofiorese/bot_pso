@@ -158,19 +158,19 @@ def clean_data(value, column_name):
     # if column_name in ["DURACAO_PREVISTA", "TRABALHO_APONTADO_ATIVIDADE", "TRABALHO_FALTANDO_ATIVIDADE", "TRABALHO_PREVISTO_ATIVIDADE", "TRABALHO_REALIZADO_ATIVIDADE"] and (value == '' or pd.isna(value) or value == None or value == "" or value == pd.isnull(value)):
     #     return None
 
-    if value == '' or pd.isna(value) or value == "" or value == pd.isnull(value):
-        return None
-
     if column_name in ["ATIVO", "IND_APO_BLOQUEADO", "IND_APROVADA", "IND_ENCERRADA"]:
         
         if value == 'Y':
-            return 1
+            return True
         
         elif value == 'N':
-            return 0
+            return False
     
     if column_name in ["DT_INICIO_APONTAMENTO", "DT_EFETIVA", "B_DT_FIM_ATIVIDADE", "B_DT_INICIO_ATIVIDADE", "DT_FIM_ATIVIDADE", "DT_INICIO_ATIVIDADE", "DT_FIM_PROJETO", "DT_INICIO_PROJETO"]:
         return convert_date(value)
+
+    if pd.isna(value) or value == "" or value is None or pd.isnull(value):
+        return None
     
     return value
 
@@ -183,21 +183,28 @@ def upsert_data(df: pd.DataFrame, table_name: str):
         conn = get_conn()
         cursor = conn.cursor()
 
-        
         create_table(cursor, table_name)
 
         logging.info(f"Substituindo valores NaN por None e formatando datas...")
 
         for col in df.columns:
+            df[col] = df[col].apply(lambda x: clean_data(x, col))
+            logging.info(f"Coluna '{col}' processada.")
+
+        for col in df.columns:
             if df[col].isnull().any():
                 logging.warning(f"A coluna '{col}' contém valores nulos (NaN) que serão convertidos para NULL no banco.")
 
-        for column in df.columns:
-            df[column] = df[column].apply(lambda x: clean_data(x, column))
-
         for _, row in df.iterrows():
+    
             data_tuple = row.to_dict()
+
+            for key, value in data_tuple.items():
+                if isinstance(value, float) and pd.isna(value):
+                    data_tuple[key] = None 
+            
             cursor.execute(UPSERT_SQL, data_tuple)
+
 
         conn.commit()
         logging.info(f"Upsert realizado com sucesso na tabela {table_name}.")

@@ -99,6 +99,7 @@ def get_dateadd_value():
             try:
                 # Pergunta para o usuário qual valor de data ele deseja
                 days_input = input("Informe o número de dias (valor positivo, o sistema aplicará o negativo): ").strip()
+                days_input = int(days_input)  # Verifica se é um número válido
                 return f'-{days_input}'  # Converte para negativo para o SQL
             except ValueError:
                 print("Por favor, insira um número válido para o número de dias.")
