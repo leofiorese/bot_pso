@@ -199,6 +199,7 @@ def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
 
         if os.path.exists(csv_file_path):
             os.remove(csv_file_path)
+            print(f"Arquivo CSV {csv_file_path} excluído com sucesso.")
             logging.info(f"Arquivo CSV {csv_file_path} excluído com sucesso.")
 
     except Exception as e:

@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 from pathlib import Path
 import time
 import importlib
+from inputimeout import inputimeout, TimeoutOccurred
+
 
 load_dotenv()
 
@@ -91,21 +93,33 @@ def do_login(page):
 
 def get_dateadd_value():
     while True:
-        custom_date_input = input("Deseja usar uma data personalizada? (sim/não): ").strip().lower()
-        if custom_date_input == "não":
-            return '-1'  
-        
-        elif custom_date_input == "sim":
-            try:
-                
-                days_input = input("Informe o número de dias (valor positivo, o sistema aplicará o negativo): ").strip()
-                days_input = int(days_input) 
+        try:
+            custom_date_input = inputimeout(prompt="Deseja usar uma data personalizada? (sim/não) [10s]: ", timeout=10).strip().lower()
 
-                return f'-{days_input}' 
+        except TimeoutOccurred:
+            print("\nTempo esgotado! Assumindo 'não' como resposta.")
+            custom_date_input="não"
+
+            if custom_date_input == "não":
+                return -1
             
-            except ValueError:
-                print("Por favor, insira um número válido para o número de dias.")
+        if custom_date_input == "não":
+                return -1
         
+        if custom_date_input == "sim":
+            while True:
+                try:
+                    days_input = input("Informe o número de dias (valor positivo, o sistema aplicará o negativo): ").strip()
+                    days_value = int(days_input)
+
+                    if days_value < 0:
+                        print("Por favor, insira um número positivo.")
+                        continue
+                    
+                    return f'-{days_value}'
+                
+                except ValueError:
+                    print("Por favor, insira um número válido para o número de dias.")
         else:
             print("Resposta inválida. Responda com 'sim' ou 'não'.")
 
