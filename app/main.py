@@ -91,37 +91,43 @@ def do_login(page):
         logging.warning("Não confirmou elemento pós-login; prosseguindo assim mesmo.")
 
 
-def get_dateadd_value():
-    while True:
-        try:
-            custom_date_input = inputimeout(prompt="Deseja usar uma data personalizada? (sim/não) [10s]: ", timeout=10).strip().lower()
+def get_dateadd_value(custom_date_input, days_value):
 
-        except TimeoutOccurred:
-            print("\nTempo esgotado! Assumindo 'não' como resposta.")
-            custom_date_input="não"
+    if custom_date_input == "não":
+        return -1
+    
+    if custom_date_input == "sim":    
+        return f'-{days_value}'
+    # while True:
+    #     try:
+    #         custom_date_input = inputimeout(prompt="Deseja usar uma data personalizada? (sim/não) [10s]: ", timeout=10).strip().lower()
 
-            if custom_date_input == "não":
-                return -1
+    #     except TimeoutOccurred:
+    #         print("\nTempo esgotado! Assumindo 'não' como resposta.")
+    #         custom_date_input="não"
+
+    #         if custom_date_input == "não":
+    #             return -1
             
-        if custom_date_input == "não":
-                return -1
+    #     if custom_date_input == "não":
+    #             return -1
         
-        if custom_date_input == "sim":
-            while True:
-                try:
-                    days_input = input("Informe o número de dias (valor positivo, o sistema aplicará o negativo): ").strip()
-                    days_value = int(days_input)
+    #     if custom_date_input == "sim":
+    #         while True:
+    #             try:
+    #                 days_input = input("Informe o número de dias (valor positivo, o sistema aplicará o negativo): ").strip()
+    #                 days_value = int(days_input)
 
-                    if days_value < 0:
-                        print("Por favor, insira um número positivo.")
-                        continue
+    #                 if days_value < 0:
+    #                     print("Por favor, insira um número positivo.")
+    #                     continue
                     
-                    return f'-{days_value}'
+    #                 return f'-{days_value}'
                 
-                except ValueError:
-                    print("Por favor, insira um número válido para o número de dias.")
-        else:
-            print("Resposta inválida. Responda com 'sim' ou 'não'.")
+    #             except ValueError:
+    #                 print("Por favor, insira um número válido para o número de dias.")
+    #     else:
+    #         print("Resposta inválida. Responda com 'sim' ou 'não'.")
 
 def goto_report(page):
     logging.info("Indo para tela de relatório...")

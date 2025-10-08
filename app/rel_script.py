@@ -1,8 +1,13 @@
 # rel_script.py
 
 from app.main import get_dateadd_value
+from app.gui import days_value, custom_date
 
-dateadd_value = get_dateadd_value()
+print(f"Custom date: {custom_date}")    
+
+print(f"Days value: {days_value}")
+
+dateadd_value = get_dateadd_value(custom_date_input=custom_date, days_value=days_value)
 
 def script_sql(dateadd_value):
     
