@@ -12,9 +12,17 @@ from pathlib import Path
 import time
 import importlib
 from inputimeout import inputimeout, TimeoutOccurred
+import sys
 
+def get_base_path():
+    if getattr(sys, 'frozen', False):
+        return os.path.dirname(sys.executable)
+    else:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    
+BASE_PATH = get_base_path()
 
-load_dotenv()
+load_dotenv(os.path.join(BASE_PATH, '.env'))
 
 LOGIN_URL  = os.getenv("PSO_LOGIN_URL")
 REPORT_URL = os.getenv("PSO_REPORT_URL")
@@ -23,11 +31,11 @@ PASSWORD   = os.getenv("PSO_PASSWORD")
 HEADLESS   = os.getenv("HEADLESS", "True").lower() == "true"
 
 # Configuração de download
-DOWNLOAD_DIR = Path("./app/downloads")
+DOWNLOAD_DIR = Path(os.path.join(BASE_PATH, "app", "downloads"))
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 MAX_RETRIES = 3
-LOGFILE = "pso_bot.log"
+LOGFILE = os.path.join(BASE_PATH, "pso_bot.log")
 
 # Seletores
 SEL_COOKIE_OK      = "text=OK, entendi."

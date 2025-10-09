@@ -5,9 +5,20 @@ from mysql.connector import Error
 from dotenv import load_dotenv
 import logging
 
+def get_base_path():
+    if getattr(sys, 'frozen', False):
+        
+        return os.path.dirname(sys.executable)
+    else:
+    
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    
+BASE_PATH = get_base_path()
+
+
 def _load_config():
 
-    load_dotenv()
+    load_dotenv(os.path.join(BASE_PATH, '.env'))
 
     return {
         "host": os.getenv("MYSQL_HOST", "localhost"),
