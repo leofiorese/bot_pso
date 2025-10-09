@@ -73,7 +73,26 @@ def create_main_window():
     action_frame = tk.Frame(root)
     action_frame.pack(pady=(5, 10))
 
-    close_button = tk.Button(action_frame, text="Fechar", width=20, height=2, command=root.quit)
+    def clear_log_file():
+        log_file_path = './pso_bot.log'
+        
+        try:
+            with open(log_file_path, 'w', encoding='latin-1') as f:
+                f.write(f"")
+        
+        except Exception as e:
+            log_viewer.config(state='normal')
+            log_viewer.insert(tk.END, f"\nERRO ao limpar o arquivo de log: {e}\n")
+            log_viewer.config(state='disabled')
+
+    clear_log = tk.Button(action_frame, text="Limpar Log", width=20, height=2, command=clear_log_file)
+    clear_log.pack(side=tk.LEFT, padx=10)
+
+    def clear_log_and_close():
+        clear_log_file()
+        root.destroy()
+
+    close_button = tk.Button(action_frame, text="Fechar", width=20, height=2, command=clear_log_and_close)
     close_button.pack(side=tk.LEFT, padx=10)
 
     log_label = tk.Label(root, text="Logs do Sistema:", font=("Arial", 10))
