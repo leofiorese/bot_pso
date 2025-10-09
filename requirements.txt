@@ -1,0 +1,5 @@
+pandas
+playwright
+mysql-connector-python
+python-dotenv
+# playwright install

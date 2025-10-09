@@ -2,12 +2,12 @@
 import os
 import logging
 import re
-from app.db.db import get_conn
-from app.actions.process_csv import process_csv
-from app.actions.upsert_data import upsert_data
+from db.db import get_conn
+from actions.process_csv import process_csv
+from actions.upsert_data import upsert_data
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from dotenv import load_dotenv
-from app.rel_script import gerar_script_final
+from rel_script import gerar_script_final
 from pathlib import Path
 import time
 import importlib

@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
-from app.main import run_once 
+from main import run_once 
 import threading
 import os
 
