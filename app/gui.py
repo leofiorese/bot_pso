@@ -70,6 +70,12 @@ def create_main_window():
     run_button = tk.Button(root, text="Iniciar Pequisa", width=44, height=2, command=lambda: ask_for_custom_date(root))
     run_button.pack(pady=10)
 
+    action_frame = tk.Frame(root)
+    action_frame.pack(pady=(5, 10))
+
+    close_button = tk.Button(action_frame, text="Fechar", width=20, height=2, command=root.quit)
+    close_button.pack(side=tk.LEFT, padx=10)
+
     log_label = tk.Label(root, text="Logs do Sistema:", font=("Arial", 10))
     log_label.pack(pady=(10, 0), padx=10, anchor="w")
 
