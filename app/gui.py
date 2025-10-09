@@ -70,6 +70,38 @@ def create_main_window():
     run_button = tk.Button(root, text="Iniciar Pequisa", width=44, height=2, command=lambda: ask_for_custom_date(root))
     run_button.pack(pady=10)
 
+    log_label = tk.Label(root, text="Logs do Sistema:", font=("Arial", 10))
+    log_label.pack(pady=(10, 0), padx=10, anchor="w")
+
+    log_frame = tk.Frame(root)
+    log_frame.pack(pady=10, padx=5, fill=tk.BOTH, expand=True)
+
+    log_viewer = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, state='disabled', font=("Courier New", 9))
+    log_viewer.pack(fill=tk.BOTH, expand=True)
+
+    def update_log_viewer():
+        log_file_path = './pso_bot.log'
+
+        try:
+            with open(log_file_path, 'r', encoding='latin-1') as log_file:
+                log_content = log_file.read()
+
+            log_viewer.config(state='normal')
+            log_viewer.delete(1.0, tk.END)
+            log_viewer.insert(tk.END, log_content)
+            log_viewer.see(tk.END)
+            log_viewer.config(state='disabled')
+        
+        except FileNotFoundError:
+            log_viewer.config(state='normal')
+            log_viewer.delete(1.0, tk.END)
+            log_viewer.insert(tk.END, "Arquivo de log não encontrado.")
+            log_viewer.config(state='disabled')
+
+        root.after(5000, update_log_viewer)
+
+    update_log_viewer()
+
     root.mainloop()
 
 if __name__ == '__main__':
