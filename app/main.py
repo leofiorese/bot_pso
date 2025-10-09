@@ -7,6 +7,7 @@ from app.actions.process_csv import process_csv
 from app.actions.upsert_data import upsert_data
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from dotenv import load_dotenv
+from app.rel_script import gerar_script_final
 from pathlib import Path
 import time
 import importlib
@@ -42,21 +43,6 @@ logging.basicConfig(level=logging.INFO, filename=LOGFILE,
 def _sanitize(name: str) -> str:
     return re.sub(r"[^\w\-.]", "_", name)
 
-def load_script():
-    script_path = Path('app/rel_script.py')
-
-    if script_path.exists():
-       
-        spec = importlib.util.spec_from_file_location("rel_script", script_path)
-        rel_script = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(rel_script)
-
-        return rel_script.script_sql_modified
-    
-    else:
-        logging.error("Arquivo 'rel_script.py' não encontrado!")
-        raise FileNotFoundError(f"O arquivo 'rel_script.py' não foi encontrado em {script_path}")
-
 def do_login(page):
     logging.info("Abrindo tela de login...")
     page.goto(LOGIN_URL, timeout=60_000)
@@ -91,45 +77,14 @@ def do_login(page):
         logging.warning("Não confirmou elemento pós-login; prosseguindo assim mesmo.")
 
 
-def get_dateadd_value(custom_date_input, days_value):
+def get_dateadd_value(custom_date_response, days_value):
 
-    if custom_date_input == "não":
-        return -1
-    
-    if custom_date_input == "sim":    
+    if custom_date_response == "sim" and days_value is not None:
         return f'-{days_value}'
-    # while True:
-    #     try:
-    #         custom_date_input = inputimeout(prompt="Deseja usar uma data personalizada? (sim/não) [10s]: ", timeout=10).strip().lower()
+    else:
+        return '-1'
 
-    #     except TimeoutOccurred:
-    #         print("\nTempo esgotado! Assumindo 'não' como resposta.")
-    #         custom_date_input="não"
-
-    #         if custom_date_input == "não":
-    #             return -1
-            
-    #     if custom_date_input == "não":
-    #             return -1
-        
-    #     if custom_date_input == "sim":
-    #         while True:
-    #             try:
-    #                 days_input = input("Informe o número de dias (valor positivo, o sistema aplicará o negativo): ").strip()
-    #                 days_value = int(days_input)
-
-    #                 if days_value < 0:
-    #                     print("Por favor, insira um número positivo.")
-    #                     continue
-                    
-    #                 return f'-{days_value}'
-                
-    #             except ValueError:
-    #                 print("Por favor, insira um número válido para o número de dias.")
-    #     else:
-    #         print("Resposta inválida. Responda com 'sim' ou 'não'.")
-
-def goto_report(page):
+def goto_report(page, dateadd_string):
     logging.info("Indo para tela de relatório...")
     page.goto(REPORT_URL, timeout=60_000)
     page.wait_for_load_state("networkidle")
@@ -137,7 +92,7 @@ def goto_report(page):
     logging.info("Esperando textarea ficar disponível...")
     page.wait_for_selector(SEL_TEXTAREA, state="visible", timeout=60_000)
 
-    script_sql = load_script()
+    script_sql = gerar_script_final(dateadd_string)
 
     logging.info("Preenchendo a área de texto com o conteúdo do script SQL...")
     page.locator(SEL_TEXTAREA).fill(script_sql)
@@ -147,10 +102,12 @@ def goto_report(page):
 
     if not page.locator(SEL_TESTAR_EXCEL).is_visible():
         logging.error("Botão 'Testar (EXCEL)' não está visível.")
+        
         raise RuntimeError("Botão 'Testar (EXCEL)' não está visível.")
 
     if not page.locator(SEL_TESTAR_EXCEL).is_enabled():
         logging.error("Botão 'Testar (EXCEL)' não está habilitado.")
+        
         raise RuntimeError("Botão 'Testar (EXCEL)' não está habilitado.")
 
     try:
@@ -159,6 +116,7 @@ def goto_report(page):
     
     except PWTimeoutError:
         logging.error("Timeout ao clicar no botão 'Testar (EXCEL)'.")
+        
         raise
 
     with page.expect_download(timeout=120_000) as d_info:
@@ -176,22 +134,29 @@ def goto_report(page):
 
     return target
 
-def run_once():
+def run_once(custom_date_response, days_value):
+
+    dateadd_string = get_dateadd_value(custom_date_response, days_value)
+
     with sync_playwright() as p:
+        
         browser = p.firefox.launch(headless=HEADLESS)
+       
         context = browser.new_context(accept_downloads=True)
+        
         page = context.new_page()
 
         try:
             do_login(page)
-            csv_file_path = goto_report(page)
+            csv_file_path = goto_report(page, dateadd_string)
 
             df = process_csv(csv_file_path)
 
             upsert_data(df, "RELATORIO_PSO", csv_file_path)
 
         finally:
-            context.close(); browser.close()
+            context.close()
+            browser.close()
 
 def main():
     if not all([LOGIN_URL, REPORT_URL, USERNAME, PASSWORD]):
@@ -202,7 +167,7 @@ def main():
     for i in range(1, MAX_RETRIES + 1):
         try:
             run_once()
-            return
+            return 
         
         except Exception as e:
             last = e

@@ -1,77 +1,76 @@
 import tkinter as tk
-from tkinter import messagebox
-from tkinter import simpledialog
-from app.main import run_once  # Importando a função da main.py
-import time
+from tkinter import messagebox, scrolledtext
+from app.main import run_once 
 import threading
+import os
 
-# Função para rodar o processo em segundo plano (evitar travar a interface)
-def run_process_in_thread():
+def run_process_in_thread(custom_date_response, days_value):
     try:
-        run_once()
-        messagebox.showinfo("Sucesso", "Processo concluído com sucesso!")
+        thread = threading.Thread(target=run_once, args=(custom_date_response, days_value))
+        thread.start()
+        messagebox.showinfo("Iniciado", "O processo foi iniciado em segundo plano.")
+    
     except Exception as e:
-        messagebox.showerror("Erro", f"Ocorreu um erro: {e}")
+        messagebox.showerror("Erro", f"Ocorreu um erro ao iniciar o processo: {e}")
 
-# Função para exibir a janela de data personalizada
-def ask_for_custom_date():
-    def on_submit():
-        # Obter as respostas
-        custom_date = date_var.get().lower()
-        
-        if custom_date == "sim":
-            try:
-
-                days_value = int(days_entry.get())
-
-                if days_value <= 0:
-                    messagebox.showerror("Erro", "O número de dias deve ser um valor positivo.")
-
-                    return 
-                    
-                messagebox.showinfo("Data personalizada", f"Você escolheu: {days_value} dias.")
-
-                run_process_in_thread()
-
-            except ValueError:
-                messagebox.showerror("Erro", "Digite um número válido para os dias.")
-
-        
-        elif custom_date == "não":
-            messagebox.showinfo("Data personalizada", "Você escolheu: Não usar data personalizada.")
-
-            run_process_in_thread()
-        
-        else:
-            messagebox.showerror("Erro", "Por favor, responda com 'sim' ou 'não'.")
+def ask_for_custom_date(root):
     
-    # Criando a janela de confirmação de data personalizada
     custom_date_window = tk.Toplevel(root)
-    custom_date_window.title("Escolha a data personalizada")
+    custom_date_window.title("Configuração de Data")
     custom_date_window.geometry("400x250")
+
+    tk.Label(custom_date_window, text="Deseja usar uma data personalizada?").pack(pady=(10, 5))
+    date_var = tk.StringVar(value="não")
     
-    tk.Label(custom_date_window, text="Deseja usar uma data personalizada? (sim/não)").pack(pady=10)
-    date_var = tk.StringVar()
-    tk.Entry(custom_date_window, textvariable=date_var).pack(pady=10)
-    
-    tk.Label(custom_date_window, text="Informe o número de dias:").pack(pady=5)
+    frame_radio = tk.Frame(custom_date_window)
+    tk.Radiobutton(frame_radio, text="Sim", variable=date_var, value="sim").pack(side=tk.LEFT, padx=10)
+    tk.Radiobutton(frame_radio, text="Não", variable=date_var, value="não").pack(side=tk.LEFT, padx=10)
+    frame_radio.pack()
+
+    tk.Label(custom_date_window, text="Se 'Sim', informe o número de dias:").pack(pady=(10, 5))
     days_entry = tk.Entry(custom_date_window)
     days_entry.pack(pady=5)
+
+    def on_submit():
+        custom_date = date_var.get()
+        days_value = None
+
+        if custom_date == "sim":
+            try:
+                days_value = int(days_entry.get())
+                
+                if days_value <= 0:
+                    messagebox.showerror("Erro", "O número de dias deve ser um inteiro positivo.", parent=custom_date_window)
+                    
+                    return
+            
+            except ValueError:
+                messagebox.showerror("Erro", "Para 'Sim', você deve digitar um número válido de dias.", parent=custom_date_window)
+                
+                return
     
-    submit_button = tk.Button(custom_date_window, text="Confirmar", command=on_submit)
-    submit_button.pack(pady=10)
+        run_process_in_thread(custom_date, days_value)
+        
+        custom_date_window.destroy()
 
-# Criando a interface gráfica principal
-root = tk.Tk()
-root.title("PSO Bot Interface")
-root.geometry("600x400")
+    submit_button = tk.Button(custom_date_window, text="Confirmar e Iniciar", command=on_submit)
+    submit_button.pack(pady=20)
+    
+    custom_date_window.transient(root)
+    custom_date_window.grab_set()
+    root.wait_window(custom_date_window)
 
-# Título
-tk.Label(root, text="PSO Bot", font=("Arial", 16)).pack(pady=20)
+def create_main_window():
+    root = tk.Tk()
+    root.title("PSOffice Bot Interface")
+    root.geometry("600x400")
+    
+    tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
+    
+    run_button = tk.Button(root, text="Iniciar Pequisa", width=20, height=2, command=lambda: ask_for_custom_date(root))
+    run_button.pack(pady=10)
 
-# Botão para iniciar o processo
-run_button = tk.Button(root, text="Iniciar Processo", width=20, height=2, command=ask_for_custom_date)
-run_button.pack(pady=20)
+    root.mainloop()
 
-# Executando a interface gráfica
-root.mainloop()
+if __name__ == '__main__':
+    create_main_window()

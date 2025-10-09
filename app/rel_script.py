@@ -1,13 +1,6 @@
 # rel_script.py
 
-from app.main import get_dateadd_value
-from app.gui import days_value, custom_date
-
-print(f"Custom date: {custom_date}")    
-
-print(f"Days value: {days_value}")
-
-dateadd_value = get_dateadd_value(custom_date_input=custom_date, days_value=days_value)
+import logging
 
 def script_sql(dateadd_value):
     
@@ -70,4 +63,8 @@ WHERE
     );
 """
 
-script_sql_modified = script_sql(dateadd_value)
+def gerar_script_final(dateadd_string):
+    logging.info(f"rel_script.py: Recebi '{dateadd_string}', gerando a query.")
+    script_completo = script_sql(dateadd_string)
+
+    return script_completo
