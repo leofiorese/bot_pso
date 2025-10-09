@@ -195,11 +195,12 @@ def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
 
 
         conn.commit()
+
         logging.info(f"Upsert realizado com sucesso na tabela {table_name}.")
 
         if os.path.exists(csv_file_path):
             os.remove(csv_file_path)
-            print(f"Arquivo CSV {csv_file_path} excluído com sucesso.")
+
             logging.info(f"Arquivo CSV {csv_file_path} excluído com sucesso.")
 
     except Exception as e:
@@ -214,6 +215,8 @@ def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
         
         if cursor:
             cursor.close()
+            logging.info("Cursor fechado.")
         
         if conn:
             conn.close()
+            logging.info("Conexão com o banco de dados fechada.")

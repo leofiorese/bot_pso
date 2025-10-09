@@ -86,15 +86,16 @@ def get_dateadd_value(custom_date_response, days_value):
 
 def goto_report(page, dateadd_string):
     logging.info("Indo para tela de relatório...")
+    
     page.goto(REPORT_URL, timeout=60_000)
     page.wait_for_load_state("networkidle")
 
-    logging.info("Esperando textarea ficar disponível...")
+    logging.info("Esperando text area ficar disponível...")
     page.wait_for_selector(SEL_TEXTAREA, state="visible", timeout=60_000)
 
     script_sql = gerar_script_final(dateadd_string)
 
-    logging.info("Preenchendo a área de texto com o conteúdo do script SQL...")
+    logging.info("Preenchendo text area com o conteúdo do script SQL...")
     page.locator(SEL_TEXTAREA).fill(script_sql)
 
     logging.info("Esperando botão 'Testar (EXCEL)' ficar disponível...")
@@ -130,8 +131,6 @@ def goto_report(page, dateadd_string):
 
     logging.info(f"Download salvo: {target}")
 
-    print(f"Download concluído: {target}")
-
     return target
 
 def run_once(custom_date_response, days_value):
@@ -157,6 +156,8 @@ def run_once(custom_date_response, days_value):
         finally:
             context.close()
             browser.close()
+            logging.info("Navegador fechado.")
+
 
 def main():
     if not all([LOGIN_URL, REPORT_URL, USERNAME, PASSWORD]):

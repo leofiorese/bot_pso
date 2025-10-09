@@ -63,11 +63,11 @@ def ask_for_custom_date(root):
 def create_main_window():
     root = tk.Tk()
     root.title("PSOffice Bot Interface")
-    root.geometry("600x400")
+    root.geometry("650x450")
     
     tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
     
-    run_button = tk.Button(root, text="Iniciar Pequisa", width=20, height=2, command=lambda: ask_for_custom_date(root))
+    run_button = tk.Button(root, text="Iniciar Pequisa", width=44, height=2, command=lambda: ask_for_custom_date(root))
     run_button.pack(pady=10)
 
     root.mainloop()

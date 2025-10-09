@@ -3,6 +3,7 @@ import sys
 import mysql.connector as mc
 from mysql.connector import Error
 from dotenv import load_dotenv
+import logging
 
 def _load_config():
 
@@ -29,14 +30,15 @@ def main():
         conn = mc.connect(**cfg)
         conn.ping(reconnect=False, attempts=1, delay=0)
         db = cfg["database"] or "(sem database selecionado)"
-        print(f"Conexão bem-sucedida em {cfg['host']}:{cfg['port']} / DB Conectado: {db}")
+        
+        logging.info(f"Conexão com banco de dados bem-sucedida em: {cfg['host']}:{cfg['port']} / DB Conectado: {db}")
 
         conn.close()
         sys.exit(0)
 
     except Error as e:
-        print("Falha na conexão com o MySQL.")
-        print(f"Detalhes: {e}")
+        logging.error("Falha na conexão com o MySQL.")
+        logging.error(f"Detalhes: {e}")
         
         sys.exit(1)
 
