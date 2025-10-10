@@ -8,8 +8,29 @@ def run_process_in_thread(custom_date_response, days_value):
     try:
         thread = threading.Thread(target=run_once, args=(custom_date_response, days_value))
         thread.start()
-        messagebox.showinfo("Iniciado", "O processo foi iniciado em segundo plano.")
-    
+
+        auto_close = tk.Toplevel()
+        auto_close.title("Iniciado")
+        auto_close.geometry("350x120")
+        auto_close.resizable(False, False)
+        auto_close.attributes("-topmost", True)
+
+        tk.Label(auto_close, text="O processo foi iniciado em segundo plano.", font=("Arial", 10), wraplength=300, justify="center").pack(pady=20)
+
+        def close_popup():
+            if auto_close.winfo_exists():
+                auto_close.destroy()
+
+        auto_close.after(5000, close_popup)
+
+        tk.Button(auto_close, text="OK", width=10, command=close_popup).pack(pady=5)
+
+        auto_close.transient()
+        auto_close.grab_set()
+        auto_close.focus_force()
+        
+        auto_close.after(10, lambda: auto_close.focus())
+
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao iniciar o processo: {e}")
 
