@@ -31,7 +31,38 @@ def ask_for_custom_date(root):
     days_entry = tk.Entry(custom_date_window)
     days_entry.pack(pady=5)
 
+    submitted = False
+    TIMEOUT_MS = 10000  # 10 segundos
+
+    def on_timeout():
+        nonlocal submitted
+        
+        if submitted:
+            return
+        
+        submitted = True
+        
+        run_process_in_thread("não", None)
+        
+        try:
+            custom_date_window.destroy()
+        
+        except:
+            pass
+
+    timeout_id = custom_date_window.after(TIMEOUT_MS, on_timeout)
+
     def on_submit():
+        nonlocal submitted
+        if submitted:
+            return
+        submitted = True
+
+        try:
+            custom_date_window.after_cancel(timeout_id)
+        except:
+            pass
+
         custom_date = date_var.get()
         days_value = None
 
@@ -41,12 +72,12 @@ def ask_for_custom_date(root):
                 
                 if days_value <= 0:
                     messagebox.showerror("Erro", "O número de dias deve ser um inteiro positivo.", parent=custom_date_window)
-                    
+                    submitted = False 
                     return
             
             except ValueError:
                 messagebox.showerror("Erro", "Para 'Sim', você deve digitar um número válido de dias.", parent=custom_date_window)
-                
+                submitted = False
                 return
     
         run_process_in_thread(custom_date, days_value)
