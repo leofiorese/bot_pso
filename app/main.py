@@ -4,10 +4,14 @@ import logging
 import re
 from db.db import get_conn
 from actions.process_csv import process_csv
-from actions.upsert_realizado_data import upsert_data
+from actions.upsert_realizado_data import upsert_data as upsert_data_realizado
+from actions.upsert_orcado_data import upsert_data as upsert_data_orcado
+#from actions.upsert_planejado_data import upsert_data as upsert_data_planejado
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from dotenv import load_dotenv
-from sql_scripts.realizado_script import gerar_script_final
+from sql_scripts.realizado_script import gerar_script_final as gerar_script_final_realizado
+from sql_scripts.orcado_script import gerar_script_final as gerar_script_final_orcado
+#from sql_scripts.planejado_script import gerar_script_final as gerar_script_final_planejado
 from pathlib import Path
 import time
 import sys
@@ -20,8 +24,6 @@ def get_base_path():
     
 BASE_PATH = get_base_path()
 
-#os.environ["PLAYWRIGHT_BROWSERS_PATH"] = os.path.join(BASE_PATH, "playwright-browsers")
-
 load_dotenv(os.path.join(BASE_PATH, '.env'))
 
 LOGIN_URL  = os.getenv("PSO_LOGIN_URL")
@@ -30,19 +32,17 @@ USERNAME   = os.getenv("PSO_USERNAME")
 PASSWORD   = os.getenv("PSO_PASSWORD")
 HEADLESS   = os.getenv("HEADLESS", "True").lower() == "true"
 
-# Configuração de download
 DOWNLOAD_DIR = Path(os.path.join(BASE_PATH, "app", "downloads"))
 DOWNLOAD_DIR.mkdir(parents=True, exist_ok=True)
 
 MAX_RETRIES = 3
 LOGFILE = os.path.join(BASE_PATH, "pso_bot.log")
 
-# Seletores
 SEL_COOKIE_OK      = "text=OK, entendi."
 SEL_LOGIN_INPUT    = "input[placeholder='Login']"
 SEL_PASSWORD_INPUT = "input[placeholder='Senha']"
 SEL_SUBMIT_BTN     = "input[type='submit']"
-SEL_TEXTAREA       = "textarea[name='QUERY']"  # Atualize o seletor do campo de texto
+SEL_TEXTAREA       = "textarea[name='QUERY']"
 SEL_TESTAR_EXCEL   = "div#tit_buttons input[type='submit'][name='button_Testar2'][value='Testar (EXCEL)']"
 
 logging.basicConfig(level=logging.INFO, filename=LOGFILE,
@@ -57,115 +57,92 @@ def do_login(page):
 
     try:
         page.locator(SEL_COOKIE_OK).click(timeout=3_000)
-    
     except PWTimeoutError:
         pass
 
     page.locator(SEL_LOGIN_INPUT).fill(USERNAME)
     page.locator(SEL_PASSWORD_INPUT).fill(PASSWORD)
 
-    logging.info("Esperando botão 'Entrar' ficar disponível...")
     page.wait_for_selector(SEL_SUBMIT_BTN, state="visible", timeout=30_000)
-
     try:
-        logging.info("Clicando no botão 'Entrar'...")
         page.locator(SEL_SUBMIT_BTN).click()
-    
     except PWTimeoutError:
         logging.error("Timeout ao clicar no botão 'Entrar'.")
         raise
 
-    logging.info("Aguardando tela inicial após login...")
     page.wait_for_load_state("networkidle")
-
     try:
         page.wait_for_selector("text=Release Notes", timeout=15_000)
-    
     except PWTimeoutError:
         logging.warning("Não confirmou elemento pós-login; prosseguindo assim mesmo.")
 
-
 def get_dateadd_value(custom_date_response, days_value):
-
     if custom_date_response == "sim" and days_value is not None:
         return f'-{days_value}'
     else:
-        return '-1'
+        return '-30'
 
-def goto_report(page, dateadd_string):
+def goto_report(page, dateadd_string, script_choice):
     logging.info("Indo para tela de relatório...")
     
     page.goto(REPORT_URL, timeout=60_000)
     page.wait_for_load_state("networkidle")
-
-    logging.info("Esperando text area ficar disponível...")
     page.wait_for_selector(SEL_TEXTAREA, state="visible", timeout=60_000)
 
-    script_sql = gerar_script_final(dateadd_string)
+    # Escolhe o script correto
+    if script_choice == "Orçado":
+        script_sql = gerar_script_final_orcado(dateadd_string)
+    #elif script_choice == "Planejado":
+    #    script_sql = gerar_script_final_planejado(dateadd_string)
+    else:  # Realizado
+        script_sql = gerar_script_final_realizado(dateadd_string)
 
     logging.info("Preenchendo text area com o conteúdo do script SQL...")
     page.locator(SEL_TEXTAREA).fill(script_sql)
 
-    logging.info("Esperando botão 'Testar (EXCEL)' ficar disponível...")
     page.wait_for_selector(SEL_TESTAR_EXCEL, state="visible", timeout=60_000)
-
-    if not page.locator(SEL_TESTAR_EXCEL).is_visible():
-        logging.error("Botão 'Testar (EXCEL)' não está visível.")
-        
-        raise RuntimeError("Botão 'Testar (EXCEL)' não está visível.")
-
-    if not page.locator(SEL_TESTAR_EXCEL).is_enabled():
-        logging.error("Botão 'Testar (EXCEL)' não está habilitado.")
-        
-        raise RuntimeError("Botão 'Testar (EXCEL)' não está habilitado.")
-
-    try:
-        logging.info("Clicando no botão 'Testar (EXCEL)'...")
-        page.locator(SEL_TESTAR_EXCEL).click()
-    
-    except PWTimeoutError:
-        logging.error("Timeout ao clicar no botão 'Testar (EXCEL)'.")
-        
-        raise
+    if not page.locator(SEL_TESTAR_EXCEL).is_visible() or not page.locator(SEL_TESTAR_EXCEL).is_enabled():
+        logging.error("Botão 'Testar (EXCEL)' não está visível ou habilitado.")
+        raise RuntimeError("Botão 'Testar (EXCEL)' não está visível ou habilitado.")
 
     with page.expect_download(timeout=120_000) as d_info:
         page.locator(SEL_TESTAR_EXCEL).click()
 
     d = d_info.value
     suggested = d.suggested_filename or "relatorio.xlsx"
-
     target = DOWNLOAD_DIR / f"{time.strftime('%Y%m%d_%H%M%S')}_{_sanitize(suggested)}"
     d.save_as(str(target))
-
     logging.info(f"Download salvo: {target}")
 
     return target
 
-def run_once(custom_date_response, days_value):
-
+def run_once(custom_date_response, days_value, script_choice):
     dateadd_string = get_dateadd_value(custom_date_response, days_value)
 
     with sync_playwright() as p:
-        
         browser = p.firefox.launch(headless=HEADLESS)
-       
         context = browser.new_context(accept_downloads=True)
-        
         page = context.new_page()
 
         try:
             do_login(page)
-            csv_file_path = goto_report(page, dateadd_string)
+            csv_file_path = goto_report(page, dateadd_string, script_choice)
 
-            df = process_csv(csv_file_path)
+            # Processa CSV de acordo com o script escolhido
+            df = process_csv(csv_file_path, script_choice)
 
-            upsert_data(df, "RELATORIO_PSO_REALIZADO", csv_file_path)
+            # Chama upsert correto
+            if script_choice == "Orçado":
+                upsert_data_orcado(df, "RELATORIO_PSO_ORCADO", csv_file_path)
+            #elif script_choice == "Planejado":
+            #    upsert_data_planejado(df, "RELATORIO_PSO_PLANEJADO", csv_file_path)
+            else:
+                upsert_data_realizado(df, "RELATORIO_PSO_REALIZADO", csv_file_path)
 
         finally:
             context.close()
             browser.close()
             logging.info("Navegador fechado.")
-
 
 def main():
     if not all([LOGIN_URL, REPORT_URL, USERNAME, PASSWORD]):
@@ -173,11 +150,13 @@ def main():
 
     last = None
 
+    # Para compatibilidade com execuções automáticas, script default como "Realizado"
+    script_choice_default = "Realizado"
+
     for i in range(1, MAX_RETRIES + 1):
         try:
-            run_once()
+            run_once(custom_date_response="não", days_value=None, script_choice=script_choice_default)
             return 
-        
         except Exception as e:
             last = e
             logging.exception(f"Tentativa {i} falhou")
