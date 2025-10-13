@@ -4,10 +4,10 @@ import logging
 import re
 from db.db import get_conn
 from actions.process_csv import process_csv
-from app.actions.upsert_realizado_data import upsert_data
+from actions.upsert_realizado_data import upsert_data
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from dotenv import load_dotenv
-from app.sql_scripts.realizado_script import gerar_script_final
+from sql_scripts.realizado_script import gerar_script_final
 from pathlib import Path
 import time
 import sys
@@ -159,7 +159,7 @@ def run_once(custom_date_response, days_value):
 
             df = process_csv(csv_file_path)
 
-            upsert_data(df, "RELATORIO_PSO", csv_file_path)
+            upsert_data(df, "RELATORIO_PSO_REALIZADO", csv_file_path)
 
         finally:
             context.close()

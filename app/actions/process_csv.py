@@ -1,7 +1,7 @@
 # app/panda_actions/process_csv.py
 import logging
 import pandas as pd
-from app.actions.upsert_realizado_data import TABLE_COLUMNS   
+from actions.upsert_realizado_data import TABLE_COLUMNS   
 
 def process_csv(file_path: str):
     logging.info(f"Lendo arquivo CSV: {file_path}...")
@@ -14,7 +14,7 @@ def process_csv(file_path: str):
 
         logging.info(f"Arquivo CSV lido com sucesso. Total de colunas: {len(df.columns)}")
 
-        if len(df.columns) != 37:
+        if len(df.columns) != len_db:
             logging.error(f"Erro: o número de colunas no CSV ({len(df.columns)}) não corresponde ao número esperado ({len_db}).")
             raise ValueError(f"O número de colunas no CSV ({len(df.columns)}) não corresponde ao número esperado ({len_db}).")
 
