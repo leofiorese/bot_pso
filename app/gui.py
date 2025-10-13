@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
-from main import run_once 
+from main import run_once, get_base_path 
 import threading
 import os
 
@@ -137,7 +137,8 @@ def create_main_window():
     action_frame.pack(pady=(5, 10))
 
     def clear_log_file():
-        log_file_path = './pso_bot.log'
+        BASE_PATH = get_base_path()
+        log_file_path = os.path.join(BASE_PATH, "pso_bot.log")
         
         try:
             with open(log_file_path, 'w', encoding='latin-1') as f:
@@ -168,7 +169,8 @@ def create_main_window():
     log_viewer.pack(fill=tk.BOTH, expand=True)
 
     def update_log_viewer():
-        log_file_path = './pso_bot.log'
+        BASE_PATH = get_base_path()
+        log_file_path = os.path.join(BASE_PATH, "pso_bot.log")
 
         try:
             with open(log_file_path, 'r', encoding='latin-1') as log_file:
