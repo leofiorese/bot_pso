@@ -14,7 +14,7 @@ def process_csv(file_path: str):
 
         logging.info(f"Arquivo CSV lido com sucesso. Total de colunas: {len(df.columns)}")
 
-        if len(df.columns) != 36:
+        if len(df.columns) != 37:
             logging.error(f"Erro: o número de colunas no CSV ({len(df.columns)}) não corresponde ao número esperado ({len_db}).")
             raise ValueError(f"O número de colunas no CSV ({len(df.columns)}) não corresponde ao número esperado ({len_db}).")
 

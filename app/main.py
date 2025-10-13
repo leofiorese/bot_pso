@@ -20,6 +20,8 @@ def get_base_path():
     
 BASE_PATH = get_base_path()
 
+#os.environ["PLAYWRIGHT_BROWSERS_PATH"] = os.path.join(BASE_PATH, "playwright-browsers")
+
 load_dotenv(os.path.join(BASE_PATH, '.env'))
 
 LOGIN_URL  = os.getenv("PSO_LOGIN_URL")
