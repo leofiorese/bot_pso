@@ -1,7 +1,7 @@
 # app/panda_actions/process_csv.py
 import logging
 import pandas as pd
-from actions.upsert_data import TABLE_COLUMNS   
+from app.actions.upsert_realizado_data import TABLE_COLUMNS   
 
 def process_csv(file_path: str):
     logging.info(f"Lendo arquivo CSV: {file_path}...")
