@@ -10,8 +10,6 @@ from dotenv import load_dotenv
 from rel_script import gerar_script_final
 from pathlib import Path
 import time
-import importlib
-from inputimeout import inputimeout, TimeoutOccurred
 import sys
 
 def get_base_path():
