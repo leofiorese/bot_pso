@@ -170,17 +170,6 @@ def create_main_window():
     run_button = tk.Button(root, text="Iniciar Pequisa", width=44, height=2, command=lambda: ask_for_script_choice(root, "não", None))
     run_button.pack(pady=10)
 
-    auto_started = {"done": False}
-
-    def _start_flow():
-        if auto_started["done"]:
-            return
-        auto_started["done"] = True
-        ask_for_script_choice(root, "não", None)
-
-    run_button.configure(command=_start_flow)
-    root.after(10000, _start_flow) #10 segundos
-
     action_frame = tk.Frame(root)
     action_frame.pack(pady=(5, 10))
 
