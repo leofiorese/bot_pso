@@ -76,11 +76,15 @@ def do_login(page):
     except PWTimeoutError:
         logging.warning("Não confirmou elemento pós-login; prosseguindo assim mesmo.")
 
-def get_dateadd_value(custom_date_response, days_value):
+def get_dateadd_value(custom_date_response, days_value, script_choice):
     if custom_date_response == "sim" and days_value is not None:
         return f'-{days_value}'
-    else:
-        return '-30'
+    defaults = {
+        "Orçado": "-30",
+        "Realizado": "-4",
+        "Planejado": "-30"
+    }  
+    return defaults.get(script_choice, "-4")
 
 def goto_report(page, dateadd_string, script_choice):
     logging.info("Indo para tela de relatório...")
@@ -117,7 +121,7 @@ def goto_report(page, dateadd_string, script_choice):
     return target
 
 def run_once(custom_date_response, days_value, script_choice):
-    dateadd_string = get_dateadd_value(custom_date_response, days_value)
+    dateadd_string = get_dateadd_value(custom_date_response, days_value, script_choice)
 
     with sync_playwright() as p:
         browser = p.firefox.launch(headless=HEADLESS)
