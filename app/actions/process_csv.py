@@ -1,7 +1,9 @@
-# app/panda_actions/process_csv.py
+# process_csv.py
 import logging
 import pandas as pd
-from actions.upsert_realizado_data import TABLE_COLUMNS   
+from actions.upsert_realizado_data import TABLE_COLUMNS as TABLE_COLUMNS_REALIZADO
+from actions.upsert_orcado_data import TABLE_COLUMNS as TABLE_COLUMNS_ORCADO  
+from actions.upsert_planejado_data import TABLE_COLUMNS as TABLE_COLUMNS_PLANEJADO  
 
 def process_csv(file_path: str):
     logging.info(f"Lendo arquivo CSV: {file_path}...")
@@ -9,8 +11,8 @@ def process_csv(file_path: str):
     try:
     
         df = pd.read_csv(file_path, delimiter=";", encoding='latin1')
-
-        len_db = len(TABLE_COLUMNS)
+        
+        len_db = len(TABLE_COLUMNS_REALIZADO)
 
         logging.info(f"Arquivo CSV lido com sucesso. Total de colunas: {len(df.columns)}")
 

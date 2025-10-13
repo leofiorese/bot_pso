@@ -4,9 +4,9 @@ from main import run_once, get_base_path
 import threading
 import os
 
-def run_process_in_thread(custom_date_response, days_value):
+def run_process_in_thread(custom_date_response, days_value, script_choice):
     try:
-        thread = threading.Thread(target=run_once, args=(custom_date_response, days_value))
+        thread = threading.Thread(target=run_once, args=(custom_date_response, days_value, script_choice))
         thread.start()
 
         auto_close = tk.Toplevel()
@@ -32,9 +32,36 @@ def run_process_in_thread(custom_date_response, days_value):
         auto_close.after(10, lambda: auto_close.focus())
 
     except Exception as e:
-        messagebox.showerror("Erro", f"Ocorreu um erro ao iniciar o processo: {e}")
+        messagebox.showerror("Erro", f"Ocorreu um erro ao iniciar o processo: {e}") 
 
-def ask_for_custom_date(root):
+def ask_for_script_choice(root, custom_date_response, days_value):
+    script_choice_window = tk.Toplevel(root)
+    script_choice_window.title("Escolha do Script")
+    script_choice_window.geometry("400x250")
+
+    tk.Label(script_choice_window, text="Escolha qual script utilizar para a pesquisa:").pack(pady=(10, 5))
+
+    script_choice = tk.StringVar(value="Orçado")
+
+    frame_radio = tk.Frame(script_choice_window)
+    tk.Radiobutton(frame_radio, text="Orçado", variable=script_choice, value="Orçado").pack(side=tk.LEFT, padx=10)
+    tk.Radiobutton(frame_radio, text="Planejado", variable=script_choice, value="Planejado").pack(side=tk.LEFT, padx=10)
+    tk.Radiobutton(frame_radio, text="Realizado", variable=script_choice, value="Realizado").pack(side=tk.LEFT, padx=10)
+    frame_radio.pack()
+
+    def on_submit():
+        script_choice_selected = script_choice.get()
+        script_choice_window.destroy()
+        ask_for_custom_date(root, custom_date_response, days_value, script_choice_selected)
+
+    submit_button = tk.Button(script_choice_window, text="Confirmar e Iniciar", command=on_submit)
+    submit_button.pack(pady=20)
+
+    script_choice_window.transient(root)
+    script_choice_window.grab_set()
+    root.wait_window(script_choice_window)
+
+def ask_for_custom_date(root, custom_date_response, days_value, script_choice):
     
     custom_date_window = tk.Toplevel(root)
     custom_date_window.title("Configuração de Data")
@@ -63,7 +90,7 @@ def ask_for_custom_date(root):
         
         submitted = True
         
-        run_process_in_thread("não", None)
+        run_process_in_thread("não", None, script_choice)
         
         try:
             custom_date_window.destroy()
@@ -95,14 +122,12 @@ def ask_for_custom_date(root):
                     messagebox.showerror("Erro", "O número de dias deve ser um inteiro positivo.", parent=custom_date_window)
                     submitted = False 
                     return
-            
             except ValueError:
                 messagebox.showerror("Erro", "Para 'Sim', você deve digitar um número válido de dias.", parent=custom_date_window)
                 submitted = False
                 return
     
-        run_process_in_thread(custom_date, days_value)
-        
+        run_process_in_thread(custom_date, days_value, script_choice)
         custom_date_window.destroy()
 
     submit_button = tk.Button(custom_date_window, text="Confirmar e Iniciar", command=on_submit)
@@ -119,7 +144,7 @@ def create_main_window():
     
     tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
     
-    run_button = tk.Button(root, text="Iniciar Pequisa", width=44, height=2, command=lambda: ask_for_custom_date(root))
+    run_button = tk.Button(root, text="Iniciar Pequisa", width=44, height=2, command=lambda: ask_for_script_choice(root, "não", None))
     run_button.pack(pady=10)
 
     auto_started = {"done": False}
@@ -128,7 +153,7 @@ def create_main_window():
         if auto_started["done"]:
             return
         auto_started["done"] = True
-        ask_for_custom_date(root)
+        ask_for_script_choice(root, "não", None)
 
     run_button.configure(command=_start_flow)
     root.after(10000, _start_flow) #10 segundos
