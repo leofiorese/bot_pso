@@ -49,7 +49,30 @@ def ask_for_script_choice(root, custom_date_response, days_value):
     tk.Radiobutton(frame_radio, text="Realizado", variable=script_choice, value="Realizado").pack(side=tk.LEFT, padx=10)
     frame_radio.pack()
 
+    submitted = False
+    TIMEOUT_MS = 10000  # 10 segundos
+
+    # Função executada após timeout
+    def on_timeout():
+        nonlocal submitted
+        if submitted:
+            return
+        submitted = True
+        script_choice_window.destroy()
+        # Passa "Realizado" como padrão
+        ask_for_custom_date(root, custom_date_response, days_value, "Realizado")
+
+    timeout_id = script_choice_window.after(TIMEOUT_MS, on_timeout)
+
     def on_submit():
+        nonlocal submitted
+        if submitted:
+            return
+        submitted = True
+        try:
+            script_choice_window.after_cancel(timeout_id)
+        except:
+            pass
         script_choice_selected = script_choice.get()
         script_choice_window.destroy()
         ask_for_custom_date(root, custom_date_response, days_value, script_choice_selected)
