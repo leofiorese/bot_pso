@@ -6,12 +6,12 @@ from db.db import get_conn
 from actions.process_csv import process_csv
 from actions.upsert_realizado_data import upsert_data as upsert_data_realizado
 from actions.upsert_orcado_data import upsert_data as upsert_data_orcado
-#from actions.upsert_planejado_data import upsert_data as upsert_data_planejado
+from actions.upsert_planejado_data import upsert_data as upsert_data_planejado
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from dotenv import load_dotenv
 from sql_scripts.realizado_script import gerar_script_final as gerar_script_final_realizado
 from sql_scripts.orcado_script import gerar_script_final as gerar_script_final_orcado
-#from sql_scripts.planejado_script import gerar_script_final as gerar_script_final_planejado
+from sql_scripts.planejado_script import gerar_script_final as gerar_script_final_planejado
 from pathlib import Path
 import time
 import sys
@@ -96,8 +96,8 @@ def goto_report(page, dateadd_string, script_choice):
     # Escolhe o script correto
     if script_choice == "Orçado":
         script_sql = gerar_script_final_orcado(dateadd_string)
-    #elif script_choice == "Planejado":
-    #    script_sql = gerar_script_final_planejado(dateadd_string)
+    elif script_choice == "Planejado":
+        script_sql = gerar_script_final_planejado(dateadd_string)
     else:  # Realizado
         script_sql = gerar_script_final_realizado(dateadd_string)
 
@@ -138,8 +138,8 @@ def run_once(custom_date_response, days_value, script_choice):
             # Chama upsert correto
             if script_choice == "Orçado":
                 upsert_data_orcado(df, "RELATORIO_PSO_ORCADO", csv_file_path)
-            #elif script_choice == "Planejado":
-            #    upsert_data_planejado(df, "RELATORIO_PSO_PLANEJADO", csv_file_path)
+            elif script_choice == "Planejado":
+                upsert_data_planejado(df, "RELATORIO_PSO_PLANEJADO", csv_file_path)
             else:
                 upsert_data_realizado(df, "RELATORIO_PSO_REALIZADO", csv_file_path)
 
