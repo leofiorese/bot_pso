@@ -28,9 +28,7 @@ JOIN
 JOIN
   PSO_TAXA_HISTORICO th ON pr.TAXA_ID_CUS_PREV = th.TAXA_ID 
 WHERE
-  p.INCLUIDO_EM BETWEEN DATEADD(day, {dateadd_value}, GETDATE()) AND GETDATE()
-  AND p.CODIGO = 'Teste'
-  
+  p.INCLUIDO_EM BETWEEN DATEADD(day, {dateadd_value}, GETDATE()) AND GETDATE()  
 """
 
 def gerar_script_final(dateadd_string):
