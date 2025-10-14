@@ -52,14 +52,13 @@ def ask_for_script_choice(root, custom_date_response, days_value):
     submitted = False
     TIMEOUT_MS = 10000  # 10 segundos
 
-    # Função executada após timeout
     def on_timeout():
         nonlocal submitted
         if submitted:
             return
         submitted = True
         script_choice_window.destroy()
-        # Passa "Realizado" como padrão
+        
         ask_for_custom_date(root, custom_date_response, days_value, "Realizado")
 
     timeout_id = script_choice_window.after(TIMEOUT_MS, on_timeout)

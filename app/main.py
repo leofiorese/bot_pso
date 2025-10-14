@@ -24,6 +24,8 @@ def get_base_path():
     
 BASE_PATH = get_base_path()
 
+#os.environ["PLAYWRIGHT_BROWSERS_PATH"] = os.path.join(BASE_PATH, "playwright-browsers")
+
 load_dotenv(os.path.join(BASE_PATH, '.env'))
 
 LOGIN_URL  = os.getenv("PSO_LOGIN_URL")
@@ -79,11 +81,13 @@ def do_login(page):
 def get_dateadd_value(custom_date_response, days_value, script_choice):
     if custom_date_response == "sim" and days_value is not None:
         return f'-{days_value}'
+    
     defaults = {
         "Orçado": "-30",
         "Realizado": "-4",
         "Planejado": "-30"
     }  
+    
     return defaults.get(script_choice, "-4")
 
 def goto_report(page, dateadd_string, script_choice):
@@ -93,12 +97,13 @@ def goto_report(page, dateadd_string, script_choice):
     page.wait_for_load_state("networkidle")
     page.wait_for_selector(SEL_TEXTAREA, state="visible", timeout=60_000)
 
-    # Escolhe o script correto
     if script_choice == "Orçado":
         script_sql = gerar_script_final_orcado(dateadd_string)
+    
     elif script_choice == "Planejado":
         script_sql = gerar_script_final_planejado(dateadd_string)
-    else:  # Realizado
+    
+    else: 
         script_sql = gerar_script_final_realizado(dateadd_string)
 
     logging.info("Preenchendo text area com o conteúdo do script SQL...")
@@ -132,14 +137,14 @@ def run_once(custom_date_response, days_value, script_choice):
             do_login(page)
             csv_file_path = goto_report(page, dateadd_string, script_choice)
 
-            # Processa CSV de acordo com o script escolhido
             df = process_csv(csv_file_path, script_choice)
 
-            # Chama upsert correto
             if script_choice == "Orçado":
                 upsert_data_orcado(df, "RELATORIO_PSO_ORCADO", csv_file_path)
+            
             elif script_choice == "Planejado":
                 upsert_data_planejado(df, "RELATORIO_PSO_PLANEJADO", csv_file_path)
+            
             else:
                 upsert_data_realizado(df, "RELATORIO_PSO_REALIZADO", csv_file_path)
 
@@ -153,8 +158,6 @@ def main():
         raise SystemExit("Defina PSO_LOGIN_URL, PSO_REPORT_URL, PSO_USERNAME e PSO_PASSWORD no .env")
 
     last = None
-
-    # Para compatibilidade com execuções automáticas, script default como "Realizado"
     script_choice_default = "Realizado"
 
     for i in range(1, MAX_RETRIES + 1):
