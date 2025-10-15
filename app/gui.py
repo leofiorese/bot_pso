@@ -169,6 +169,12 @@ def create_main_window():
     run_button = tk.Button(root, text="Iniciar Pequisa", width=44, height=2, command=lambda: ask_for_script_choice(root, "não", None))
     run_button.pack(pady=10)
 
+    def auto_click_button():
+        run_button.invoke()
+
+    # 10 segundos para clicar automaticamente no botão "Iniciar Pesquisa" caso o usuário não clique
+    root.after(10000, auto_click_button)
+
     action_frame = tk.Frame(root)
     action_frame.pack(pady=(5, 10))
 
