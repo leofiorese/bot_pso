@@ -5,9 +5,9 @@ import threading
 import os
 import config_default_script as config_default_script
 
-def run_process_in_thread(custom_date_response, days_value, script_choice):
+def run_process_in_thread(custom_date_response, days_value, script_choice, user_choice):
     try:
-        thread = threading.Thread(target=run_once, args=(custom_date_response, days_value, script_choice))
+        thread = threading.Thread(target=run_once, args=(custom_date_response, days_value, script_choice, user_choice))
         thread.start()
 
         auto_close = tk.Toplevel()
@@ -35,7 +35,7 @@ def run_process_in_thread(custom_date_response, days_value, script_choice):
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao iniciar o processo: {e}") 
 
-def ask_for_script_choice(root, custom_date_response, days_value):
+def ask_for_script_choice(root, custom_date_response, days_value, user_choice):
     script_choice_window = tk.Toplevel(root)
     script_choice_window.title("Escolha do Script")
     script_choice_window.geometry("400x250")
@@ -60,7 +60,7 @@ def ask_for_script_choice(root, custom_date_response, days_value):
         submitted = True
         script_choice_window.destroy()
         
-        ask_for_custom_date(root, custom_date_response, days_value, config_default_script.script_choice_default)
+        ask_for_custom_date(root, custom_date_response, days_value, config_default_script.script_choice_default, user_choice)
 
     timeout_id = script_choice_window.after(TIMEOUT_MS, on_timeout)
 
@@ -74,8 +74,10 @@ def ask_for_script_choice(root, custom_date_response, days_value):
         except:
             pass
         script_choice_selected = script_choice.get()
+        config_default_script.script_choice_default = script_choice_selected
         script_choice_window.destroy()
-        ask_for_custom_date(root, custom_date_response, days_value, script_choice_selected)
+        ask_for_custom_date(root, custom_date_response, days_value, config_default_script.script_choice_default, user_choice)
+
 
     submit_button = tk.Button(script_choice_window, text="Confirmar e Iniciar", command=on_submit)
     submit_button.pack(pady=20)
@@ -84,7 +86,7 @@ def ask_for_script_choice(root, custom_date_response, days_value):
     script_choice_window.grab_set()
     root.wait_window(script_choice_window)
 
-def ask_for_custom_date(root, custom_date_response, days_value, script_choice):
+def ask_for_custom_date(root, custom_date_response, days_value, script_choice, user_choice):
     
     custom_date_window = tk.Toplevel(root)
     custom_date_window.title("Configuração de Data")
@@ -112,9 +114,9 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice):
             return
         
         submitted = True
-        
-        run_process_in_thread("não", None, script_choice)
-        
+
+        run_process_in_thread("não", None, script_choice, user_choice)
+
         try:
             custom_date_window.destroy()
         
@@ -150,7 +152,7 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice):
                 submitted = False
                 return
     
-        run_process_in_thread(custom_date, days_value, script_choice)
+        run_process_in_thread(custom_date, days_value, script_choice, user_choice)
         custom_date_window.destroy()
 
     submit_button = tk.Button(custom_date_window, text="Confirmar e Iniciar", command=on_submit)
@@ -160,6 +162,12 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice):
     custom_date_window.grab_set()
     root.wait_window(custom_date_window)
 
+
+def update_user_choice(value):
+    global user_choice
+    user_choice = value
+    return user_choice
+
 def create_main_window():
     root = tk.Tk()
     root.title("PSOffice Bot Interface")
@@ -167,7 +175,10 @@ def create_main_window():
     
     tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
     
-    run_button = tk.Button(root, text="Iniciar Pequisa", width=44, height=2, command=lambda: ask_for_script_choice(root, "não", None))
+    run_button = tk.Button(root, text="Iniciar Pesquisa Manual", width=44, height=2, command=lambda: [update_user_choice(1), ask_for_script_choice(root, "não", None, user_choice)])
+    run_button.pack(pady=10)
+
+    run_button = tk.Button(root, text="Iniciar Pesquisa Automática", width=44, height=2, command=lambda: [update_user_choice(0), ask_for_script_choice(root, "não", None, user_choice)])
     run_button.pack(pady=10)
 
     def auto_click_button():

@@ -1,1 +1,2 @@
-script_choice_default = "Orçado"  # Valor inicial
+script_choice_default = ""  # Valor inicial
+
