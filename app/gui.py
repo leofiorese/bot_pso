@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
-from main import run_once, get_base_path 
+from main import run_once, get_base_path
 import threading
 import os
+import config_default_script as config_default_script
 
 def run_process_in_thread(custom_date_response, days_value, script_choice):
     try:
@@ -59,7 +60,7 @@ def ask_for_script_choice(root, custom_date_response, days_value):
         submitted = True
         script_choice_window.destroy()
         
-        ask_for_custom_date(root, custom_date_response, days_value, "Realizado")
+        ask_for_custom_date(root, custom_date_response, days_value, config_default_script.script_choice_default)
 
     timeout_id = script_choice_window.after(TIMEOUT_MS, on_timeout)
 
@@ -172,7 +173,6 @@ def create_main_window():
     def auto_click_button():
         run_button.invoke()
 
-    # 10 segundos para clicar automaticamente no botão "Iniciar Pesquisa" caso o usuário não clique
     root.after(10000, auto_click_button)
 
     action_frame = tk.Frame(root)

@@ -1,0 +1,1 @@
+script_choice_default = "Orçado"  # Valor inicial

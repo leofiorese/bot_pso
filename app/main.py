@@ -15,6 +15,7 @@ from sql_scripts.planejado_script import gerar_script_final as gerar_script_fina
 from pathlib import Path
 import time
 import sys
+import config_default_script as config_default_script
 
 def get_base_path():
     if getattr(sys, 'frozen', False):
@@ -126,50 +127,55 @@ def goto_report(page, dateadd_string, script_choice):
     return target
 
 def run_once(custom_date_response, days_value, script_choice):
-    dateadd_string = get_dateadd_value(custom_date_response, days_value, script_choice)
-
-    with sync_playwright() as p:
-        browser = p.firefox.launch(headless=HEADLESS)
-        context = browser.new_context(accept_downloads=True)
-        page = context.new_page()
-
-        try:
-            do_login(page)
-            csv_file_path = goto_report(page, dateadd_string, script_choice)
-
-            df = process_csv(csv_file_path, script_choice)
-
-            if script_choice == "Orçado":
-                upsert_data_orcado(df, "RELATORIO_PSO_ORCADO", csv_file_path)
-            
-            elif script_choice == "Planejado":
-                upsert_data_planejado(df, "RELATORIO_PSO_PLANEJADO", csv_file_path)
-            
-            else:
-                upsert_data_realizado(df, "RELATORIO_PSO_REALIZADO", csv_file_path)
-
-        finally:
-            context.close()
-            browser.close()
-            logging.info("Navegador fechado.")
-
-def main():
-    if not all([LOGIN_URL, REPORT_URL, USERNAME, PASSWORD]):
-        raise SystemExit("Defina PSO_LOGIN_URL, PSO_REPORT_URL, PSO_USERNAME e PSO_PASSWORD no .env")
+    script_choices = ["Orçado", "Planejado", "Realizado"]
 
     last = None
-    script_choice_default = "Realizado"
 
-    for i in range(1, MAX_RETRIES + 1):
-        try:
-            run_once(custom_date_response="não", days_value=None, script_choice=script_choice_default)
-            return 
-        except Exception as e:
-            last = e
-            logging.exception(f"Tentativa {i} falhou")
-            time.sleep(4 * i)
+    for script_choice in script_choices:
+        config_default_script.script_choice_default = script_choice
+        
+        for i in range(1, MAX_RETRIES + 1):
+            try:
+                logging.info(f"Iniciando consulta para: {config_default_script.script_choice_default}")
+            
+                dateadd_string = get_dateadd_value(custom_date_response, days_value, config_default_script.script_choice_default)
 
-    raise last
+                with sync_playwright() as p:
+                    browser = p.firefox.launch(headless=HEADLESS)
+                    context = browser.new_context(accept_downloads=True)
+                    page = context.new_page()
 
-if __name__ == "__main__":
-    main()
+                    try:
+                        do_login(page)
+                        csv_file_path = goto_report(page, dateadd_string, config_default_script.script_choice_default)
+
+                        df = process_csv(csv_file_path, config_default_script.script_choice_default)
+
+                        if config_default_script.script_choice_default == "Orçado":
+                            upsert_data_orcado(df, "RELATORIO_PSO_ORCADO", csv_file_path)
+
+                        elif config_default_script.script_choice_default == "Planejado":
+                            upsert_data_planejado(df, "RELATORIO_PSO_PLANEJADO", csv_file_path)
+
+                        else:
+                            upsert_data_realizado(df, "RELATORIO_PSO_REALIZADO", csv_file_path)
+
+                    finally:
+                        context.close()
+                        browser.close()
+                        logging.info("Navegador fechado.")
+                        logging.info(f"Consulta para {config_default_script.script_choice_default} concluída com sucesso.")
+                        logging.info("-" * 50)
+                        logging.info("Aguardando 5 segundos antes da próxima consulta...")
+                        time.sleep(5)
+                        logging.info("-" * 50)
+
+                break 
+            
+            except Exception as e:
+                last = e
+                logging.exception(f"Tentativa {i} para {config_default_script.script_choice_default} falhou.")
+                time.sleep(4 * i)
+
+    if last:
+        raise last
