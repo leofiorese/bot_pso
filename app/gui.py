@@ -50,6 +50,10 @@ def ask_for_script_choice(root, custom_date_response, days_value, user_choice):
     script_choice_window.title("Escolha do Script")
     script_choice_window.geometry("400x250")
 
+    script_choice_window.bind("<Button-1>", lambda event: reset_inactivity_timer())
+    script_choice_window.bind("<KeyPress>", lambda event: reset_inactivity_timer())
+
+
     tk.Label(script_choice_window, text="Escolha qual script utilizar para a pesquisa:").pack(pady=(10, 5))
 
     script_choice = tk.StringVar(value="Orçado")
@@ -69,6 +73,10 @@ def ask_for_script_choice(root, custom_date_response, days_value, user_choice):
             return
         submitted = True
         script_choice_window.destroy()
+
+        logging.info("Nenhuma escolha feita. Usando valor padrão: 'Orçado'.")
+
+        config_default_script.script_choice_default = "Orçado"
         
         ask_for_custom_date(root, custom_date_response, days_value, config_default_script.script_choice_default, user_choice)
 
@@ -102,6 +110,9 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice, u
     custom_date_window = tk.Toplevel(root)
     custom_date_window.title("Configuração de Data")
     custom_date_window.geometry("400x250")
+
+    custom_date_window.bind("<Button-1>", lambda event: reset_inactivity_timer())
+    custom_date_window.bind("<KeyPress>", lambda event: reset_inactivity_timer())  
 
     tk.Label(custom_date_window, text="Deseja usar uma data personalizada?").pack(pady=(10, 5))
     date_var = tk.StringVar(value="não")
@@ -199,8 +210,11 @@ def create_main_window():
     flag_inactivity_checking = False
 
     root = tk.Tk()
-    root.title("PSOffice Bot Interface")
+    root.title("PSOffice Bot")
     root.geometry("1100x550")
+
+    root.bind("<Button-1>", lambda event: reset_inactivity_timer())
+    root.bind("<KeyPress>", lambda event: reset_inactivity_timer())  
     
     tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
     
@@ -210,9 +224,7 @@ def create_main_window():
     run_button_automatic = tk.Button(root, text="Iniciar Pesquisa Automática", width=44, height=2, command=lambda: [update_user_choice(0), ask_for_script_choice(root, "não", None, user_choice)])
     run_button_automatic.pack(pady=(10, 15))
 
-    check_inactivity(root, run_button_automatic)
-    root.bind("<Button-1>", lambda event: reset_inactivity_timer())
-    root.bind("<KeyPress>", lambda event: reset_inactivity_timer())  
+    check_inactivity(root, run_button_automatic) 
 
     action_frame = tk.Frame(root)
     action_frame.pack(pady=(5, 10))
