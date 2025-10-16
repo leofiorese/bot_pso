@@ -111,7 +111,7 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice, u
     tk.Radiobutton(frame_radio, text="Não", variable=date_var, value="não").pack(side=tk.LEFT, padx=10)
     frame_radio.pack()
 
-    tk.Label(custom_date_window, text="Se 'Sim', informe o número de dias:").pack(pady=(10, 5))
+    tk.Label(custom_date_window, text="Se 'Sim', informe o número de dias anteriores desejado:").pack(pady=(10, 5))
     days_entry = tk.Entry(custom_date_window)
     days_entry.pack(pady=5)
 
@@ -179,9 +179,9 @@ def check_inactivity(root, run_button):
 
     if time.time() - last_interaction_time >= 10 and not flag_inactivity_checking:
         logging.info("Inatividade detectada, clicando automaticamente.")
+        logging.info("Flag de verificação de inatividade ativada.")
         run_button.invoke()
         flag_inactivity_checking = True
-        logging.info("Flag de verificação de inatividade ativada.")
 
     root.after(1000, check_inactivity, root, run_button)
 
@@ -200,15 +200,15 @@ def create_main_window():
 
     root = tk.Tk()
     root.title("PSOffice Bot Interface")
-    root.geometry("650x550")
+    root.geometry("1100x550")
     
     tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
     
     run_button = tk.Button(root, text="Iniciar Pesquisa Manual", width=44, height=2, command=lambda: [update_user_choice(1), ask_for_script_choice(root, "não", None, user_choice)])
-    run_button.pack(pady=10)
+    run_button.pack(pady=(15, 10))
 
     run_button_automatic = tk.Button(root, text="Iniciar Pesquisa Automática", width=44, height=2, command=lambda: [update_user_choice(0), ask_for_script_choice(root, "não", None, user_choice)])
-    run_button_automatic.pack(pady=10)
+    run_button_automatic.pack(pady=(10, 15))
 
     check_inactivity(root, run_button_automatic)
     root.bind("<Button-1>", lambda event: reset_inactivity_timer())
