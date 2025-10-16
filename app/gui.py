@@ -201,7 +201,7 @@ def check_inactivity(root, run_button):
 
 def update_flag_inactivity(value):
     global flag_inactivity_checking
-    
+
     flag_inactivity_checking = value
     logging.info("Atividade detectada.")
     logging.info("Flag de verificação de inatividade desativada.")
@@ -227,10 +227,10 @@ def create_main_window():
     
     tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
     
-    run_button = tk.Button(root, text="Iniciar Pesquisa Manual", width=44, height=2, command=lambda: [update_user_choice(1), update_flag_inactivity(True), ask_for_script_choice(root, "não", None, user_choice)])
+    run_button = tk.Button(root, text="Iniciar Pesquisa Personalizada", width=60, height=2, command=lambda: [update_user_choice(1), update_flag_inactivity(True), ask_for_script_choice(root, "não", None, user_choice)])
     run_button.pack(pady=(15, 10))
 
-    run_button_automatic = tk.Button(root, text="Iniciar Pesquisa Automática", width=44, height=2, command=lambda: [update_user_choice(0), ask_for_script_choice(root, "não", None, user_choice)])
+    run_button_automatic = tk.Button(root, text="Iniciar Pesquisa Automática (Todos os relatórios personalizados)", width=60, height=2, command=lambda: [update_user_choice(0), update_flag_inactivity(True), run_process_in_thread("não", None, config_default_script.script_choice_default, user_choice)])
     run_button_automatic.pack(pady=(10, 15))
 
     check_inactivity(root, run_button_automatic) 
@@ -250,14 +250,14 @@ def create_main_window():
             log_viewer.insert(tk.END, f"\nERRO ao limpar o arquivo de log: {e}\n")
             log_viewer.config(state='disabled')
 
-    clear_log = tk.Button(action_frame, text="Limpar Log", width=20, height=2, command=clear_log_file)
+    clear_log = tk.Button(action_frame, text="Limpar Log", width=28, height=2, command=clear_log_file)
     clear_log.pack(side=tk.LEFT, padx=10)
 
     def clear_log_and_close():
         clear_log_file()
         root.destroy()
 
-    close_button = tk.Button(action_frame, text="Fechar", width=20, height=2, command=clear_log_and_close)
+    close_button = tk.Button(action_frame, text="Fechar", width=28, height=2, command=clear_log_and_close)
     close_button.pack(side=tk.LEFT, padx=10)
 
     log_label = tk.Label(root, text="Logs do Sistema:", font=("Arial", 10))
