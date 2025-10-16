@@ -4,6 +4,13 @@ from main import run_once, get_base_path
 import threading
 import os
 import config_default_script as config_default_script
+import time
+import logging
+
+last_interaction_time = time.time()
+
+flag_inactivity_checking = False
+
 
 def run_process_in_thread(custom_date_response, days_value, script_choice, user_choice):
     try:
@@ -34,6 +41,9 @@ def run_process_in_thread(custom_date_response, days_value, script_choice, user_
 
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao iniciar o processo: {e}") 
+
+
+
 
 def ask_for_script_choice(root, custom_date_response, days_value, user_choice):
     script_choice_window = tk.Toplevel(root)
@@ -78,13 +88,14 @@ def ask_for_script_choice(root, custom_date_response, days_value, user_choice):
         script_choice_window.destroy()
         ask_for_custom_date(root, custom_date_response, days_value, config_default_script.script_choice_default, user_choice)
 
-
     submit_button = tk.Button(script_choice_window, text="Confirmar e Iniciar", command=on_submit)
     submit_button.pack(pady=20)
 
     script_choice_window.transient(root)
     script_choice_window.grab_set()
     root.wait_window(script_choice_window)
+
+
 
 def ask_for_custom_date(root, custom_date_response, days_value, script_choice, user_choice):
     
@@ -109,17 +120,12 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice, u
 
     def on_timeout():
         nonlocal submitted
-        
         if submitted:
             return
-        
         submitted = True
-
         run_process_in_thread("não", None, script_choice, user_choice)
-
         try:
             custom_date_window.destroy()
-        
         except:
             pass
 
@@ -130,7 +136,6 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice, u
         if submitted:
             return
         submitted = True
-
         try:
             custom_date_window.after_cancel(timeout_id)
         except:
@@ -166,25 +171,48 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice, u
 def update_user_choice(value):
     global user_choice
     user_choice = value
-    return user_choice
+
+
+def check_inactivity(root, run_button):
+    global last_interaction_time
+    global flag_inactivity_checking
+
+    if time.time() - last_interaction_time >= 10 and not flag_inactivity_checking:
+        logging.info("Inatividade detectada, clicando automaticamente.")
+        run_button.invoke()
+        flag_inactivity_checking = True
+        logging.info("Flag de verificação de inatividade ativada.")
+
+    root.after(1000, check_inactivity, root, run_button)
+
+
+def reset_inactivity_timer():
+    global last_interaction_time
+    last_interaction_time = time.time()
+
 
 def create_main_window():
+    global last_interaction_time
+    last_interaction_time = time.time()
+
+    global flag_inactivity_checking
+    flag_inactivity_checking = False
+
     root = tk.Tk()
     root.title("PSOffice Bot Interface")
-    root.geometry("650x450")
+    root.geometry("650x550")
     
     tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
     
     run_button = tk.Button(root, text="Iniciar Pesquisa Manual", width=44, height=2, command=lambda: [update_user_choice(1), ask_for_script_choice(root, "não", None, user_choice)])
     run_button.pack(pady=10)
 
-    run_button = tk.Button(root, text="Iniciar Pesquisa Automática", width=44, height=2, command=lambda: [update_user_choice(0), ask_for_script_choice(root, "não", None, user_choice)])
-    run_button.pack(pady=10)
+    run_button_automatic = tk.Button(root, text="Iniciar Pesquisa Automática", width=44, height=2, command=lambda: [update_user_choice(0), ask_for_script_choice(root, "não", None, user_choice)])
+    run_button_automatic.pack(pady=10)
 
-    def auto_click_button():
-        run_button.invoke()
-
-    root.after(10000, auto_click_button)
+    check_inactivity(root, run_button_automatic)
+    root.bind("<Button-1>", lambda event: reset_inactivity_timer())
+    root.bind("<KeyPress>", lambda event: reset_inactivity_timer())  
 
     action_frame = tk.Frame(root)
     action_frame.pack(pady=(5, 10))
@@ -196,7 +224,6 @@ def create_main_window():
         try:
             with open(log_file_path, 'w', encoding='latin-1') as f:
                 f.write(f"")
-        
         except Exception as e:
             log_viewer.config(state='normal')
             log_viewer.insert(tk.END, f"\nERRO ao limpar o arquivo de log: {e}\n")
@@ -234,7 +261,6 @@ def create_main_window():
             log_viewer.insert(tk.END, log_content)
             log_viewer.see(tk.END)
             log_viewer.config(state='disabled')
-        
         except FileNotFoundError:
             log_viewer.config(state='normal')
             log_viewer.delete(1.0, tk.END)
@@ -244,7 +270,6 @@ def create_main_window():
         root.after(5000, update_log_viewer)
 
     update_log_viewer()
-
     root.mainloop()
 
 if __name__ == '__main__':
