@@ -135,6 +135,9 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice, u
             return
         submitted = True
         run_process_in_thread("não", None, script_choice, user_choice)
+
+        logging.info("Nenhuma escolha feita. Usando valor padrão: 4 dias.")
+    
         try:
             custom_date_window.destroy()
         except:
