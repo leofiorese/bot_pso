@@ -199,6 +199,12 @@ def check_inactivity(root, run_button):
 
     root.after(1000, check_inactivity, root, run_button)
 
+def update_flag_inactivity(value):
+    global flag_inactivity_checking
+    
+    flag_inactivity_checking = value
+    logging.info("Atividade detectada.")
+    logging.info("Flag de verificação de inatividade desativada.")
 
 def reset_inactivity_timer():
     global last_interaction_time
@@ -221,7 +227,7 @@ def create_main_window():
     
     tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
     
-    run_button = tk.Button(root, text="Iniciar Pesquisa Manual", width=44, height=2, command=lambda: [update_user_choice(1), ask_for_script_choice(root, "não", None, user_choice)])
+    run_button = tk.Button(root, text="Iniciar Pesquisa Manual", width=44, height=2, command=lambda: [update_user_choice(1), update_flag_inactivity(True), ask_for_script_choice(root, "não", None, user_choice)])
     run_button.pack(pady=(15, 10))
 
     run_button_automatic = tk.Button(root, text="Iniciar Pesquisa Automática", width=44, height=2, command=lambda: [update_user_choice(0), ask_for_script_choice(root, "não", None, user_choice)])
