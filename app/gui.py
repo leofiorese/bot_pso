@@ -227,7 +227,7 @@ def create_main_window():
     
     tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
     
-    run_button = tk.Button(root, text="Iniciar Pesquisa Personalizada", width=60, height=2, command=lambda: [update_user_choice(1), update_flag_inactivity(True), ask_for_script_choice(root, "não", None, user_choice)])
+    run_button = tk.Button(root, text="Iniciar Pesquisa Personalizada (Apenas um relatório personalizado)", width=60, height=2, command=lambda: [update_user_choice(1), update_flag_inactivity(True), ask_for_script_choice(root, "não", None, user_choice)])
     run_button.pack(pady=(15, 10))
 
     run_button_automatic = tk.Button(root, text="Iniciar Pesquisa Automática (Todos os relatórios personalizados)", width=60, height=2, command=lambda: [update_user_choice(0), update_flag_inactivity(True), run_process_in_thread("não", None, config_default_script.script_choice_default, user_choice)])
@@ -260,6 +260,17 @@ def create_main_window():
     close_button = tk.Button(action_frame, text="Fechar", width=28, height=2, command=clear_log_and_close)
     close_button.pack(side=tk.LEFT, padx=10)
 
+    def check_inactivity_for_close():
+        global last_interaction_time
+        
+        if time.time() - last_interaction_time > 120:
+            logging.info("Inatividade de 2 minutos detectada. Fechando a aplicação automaticamente.")
+            clear_log_and_close()
+        else:
+            root.after(1000, check_inactivity_for_close)
+
+    root.after(1000, check_inactivity_for_close)
+
     log_label = tk.Label(root, text="Logs do Sistema:", font=("Arial", 10))
     log_label.pack(pady=(10, 0), padx=10, anchor="w")
 
@@ -288,7 +299,7 @@ def create_main_window():
             log_viewer.insert(tk.END, "Arquivo de log não encontrado.")
             log_viewer.config(state='disabled')
 
-        root.after(5000, update_log_viewer)
+        root.after(1000, update_log_viewer)
 
     update_log_viewer()
     root.mainloop()
