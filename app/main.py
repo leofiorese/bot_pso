@@ -3,10 +3,10 @@ import os
 import logging
 import re
 from db.db import get_conn
-from actions.process_csv import process_csv
-from actions.upsert_realizado_data import upsert_data as upsert_data_realizado
-from actions.upsert_orcado_data import upsert_data as upsert_data_orcado
-from actions.upsert_planejado_data import upsert_data as upsert_data_planejado
+from actions.process_csv.process_csv import process_csv
+from actions.upsert_data.upsert_realizado_data import upsert_data as upsert_data_realizado
+from actions.upsert_data.upsert_orcado_data import upsert_data as upsert_data_orcado
+from actions.upsert_data.upsert_planejado_data import upsert_data as upsert_data_planejado
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from dotenv import load_dotenv
 from sql_scripts.realizado_script import gerar_script_final as gerar_script_final_realizado

@@ -1,9 +1,9 @@
 # process_csv.py
 import logging
 import pandas as pd
-from actions.upsert_realizado_data import TABLE_COLUMNS as TABLE_COLUMNS_REALIZADO
-from actions.upsert_orcado_data import TABLE_COLUMNS as TABLE_COLUMNS_ORCADO  
-from actions.upsert_planejado_data import TABLE_COLUMNS as TABLE_COLUMNS_PLANEJADO  
+from actions.upsert_data.upsert_realizado_data import TABLE_COLUMNS as TABLE_COLUMNS_REALIZADO
+from actions.upsert_data.upsert_orcado_data import TABLE_COLUMNS as TABLE_COLUMNS_ORCADO  
+from actions.upsert_data.upsert_planejado_data import TABLE_COLUMNS as TABLE_COLUMNS_PLANEJADO  
 
 def process_csv(file_path: str, script_choice: str):
     logging.info(f"Lendo arquivo CSV: {file_path}...")
