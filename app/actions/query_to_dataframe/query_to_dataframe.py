@@ -31,13 +31,3 @@ def query_to_dataframe(query):
     except Exception as e:
         logging.error(f"Erro ao executar a consulta: {e}")
         return None
-
-if __name__ == "__main__":
-    query = "SELECT * FROM tabela_apontamentos"
-
-    df = query_to_dataframe(query)
-
-    if df is not None:
-        print(df.head())
-    else:
-        logging.error("Não foi possível carregar os dados.")

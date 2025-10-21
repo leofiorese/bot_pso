@@ -7,6 +7,9 @@ import config_default_script as config_default_script
 import time
 import logging
 
+from actions.query_to_dataframe.query_to_dataframe import query_to_dataframe
+from ia import generate_insights
+
 last_interaction_time = time.time()
 
 flag_inactivity_checking = False
@@ -41,6 +44,36 @@ def run_process_in_thread(custom_date_response, days_value, script_choice, user_
 
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao iniciar o processo: {e}") 
+
+def run_process_in_thread2(query, user_prompt):
+    try:
+        thread = threading.Thread(target=process_query, args=(query, user_prompt))
+        thread.start()
+
+        auto_close = tk.Toplevel()
+        auto_close.title("Iniciado")
+        auto_close.geometry("350x120")
+        auto_close.resizable(False, False)
+        auto_close.attributes("-topmost", True)
+
+        tk.Label(auto_close, text="O processo foi iniciado em segundo plano.", font=("Arial", 10), wraplength=300, justify="center").pack(pady=20)
+
+        def close_popup():
+            if auto_close.winfo_exists():
+                auto_close.destroy()
+
+        auto_close.after(5000, close_popup)
+
+        tk.Button(auto_close, text="OK", width=10, command=close_popup).pack(pady=5)
+
+        auto_close.transient()
+        auto_close.grab_set()
+        auto_close.focus_force()
+
+    except Exception as e:
+        messagebox.showerror("Erro", f"Ocorreu um erro ao iniciar o processo: {e}")
+
+
 
 
 
@@ -211,6 +244,108 @@ def reset_inactivity_timer():
     last_interaction_time = time.time()
 
 
+def process_query(query, user_prompt):
+    df = query_to_dataframe(query)
+
+    if df is not None:
+        insights = generate_insights(df, user_prompt)
+        for insight in insights:
+            logging.info(insight)
+    else:
+        logging.error("Não foi possível carregar os dados.")
+
+
+def ask_for_sql_query():
+    query_window = tk.Toplevel()
+    query_window.title("Digite sua Query SQL")
+    query_window.geometry("700x500")
+
+    tk.Label(query_window, text="Digite a sua Query SQL para gerar o DataFrame:").pack(pady=10)
+
+    query_text = tk.Text(query_window, width=70, height=20)
+    query_text.pack(pady=10)
+
+    def on_continue():
+        user_query = query_text.get("1.0", "end-1c")
+        query_window.destroy()
+
+        ask_for_user_prompt(user_query)
+
+    def on_cancel():
+        query_window.destroy()
+
+    button_frame = tk.Frame(query_window)
+    button_frame.pack(pady=20)
+
+    continue_button = tk.Button(button_frame, text="Continuar", width=15, height=2, command=on_continue)
+    cancel_button = tk.Button(button_frame, text="Cancelar", width=15, height=2, command=on_cancel)
+
+    continue_button.pack(side=tk.LEFT, padx=10)
+    cancel_button.pack(side=tk.RIGHT, padx=10)
+
+    query_window.transient()
+    query_window.grab_set()
+    query_window.focus_force()
+
+
+def ask_for_user_prompt(query):
+    prompt_window = tk.Toplevel()
+    prompt_window.title("Digite seu Prompt para IA")
+    prompt_window.geometry("700x500")
+
+    tk.Label(prompt_window, text="Digite o prompt que deseja enviar para a IA:").pack(pady=10)
+
+    prompt_text = tk.Text(prompt_window, width=70, height=20)
+    prompt_text.pack(pady=10)
+
+    def on_continue():
+        user_prompt = prompt_text.get("1.0", "end-1c")
+        prompt_window.destroy()
+
+        ask_for_acknowledgment(query, user_prompt)
+
+    def on_cancel():
+        prompt_window.destroy()
+
+    button_frame = tk.Frame(prompt_window)
+    button_frame.pack(pady=20)
+
+    continue_button = tk.Button(button_frame, text="Continuar", width=15, height=2, command=on_continue)
+    cancel_button = tk.Button(button_frame, text="Cancelar", width=15, height=2, command=on_cancel)
+
+    continue_button.pack(side=tk.LEFT, padx=10)
+    cancel_button.pack(side=tk.RIGHT, padx=10)
+
+
+def ask_for_acknowledgment(query, user_prompt):
+    acknowledgment_window = tk.Toplevel()
+    acknowledgment_window.title("Aviso sobre o Uso de IA")
+    acknowledgment_window.geometry("500x200")
+
+    tk.Label(acknowledgment_window, text="O uso de IA consumirá grande poder computacional e pode levar alguns minutos.").pack(pady=(20, 5))
+    tk.Label(acknowledgment_window, text="A IA pode cometer erros. Faça a análise crítica antes de usá-la.").pack(pady=(5, 20))
+
+    def on_acknowledge():
+        acknowledgment_window.destroy()
+        run_process_in_thread2(query, user_prompt)
+
+    def on_cancel():
+        acknowledgment_window.destroy()
+
+    button_frame = tk.Frame(acknowledgment_window)
+    button_frame.pack(side=tk.BOTTOM, pady=20)
+
+    acknowledge_button = tk.Button(button_frame, text="Estou Ciente", width=15, height=2, command=on_acknowledge)
+    cancel_button = tk.Button(button_frame, text="Cancelar", width=15, height=2, command=on_cancel)
+
+    acknowledge_button.pack(side=tk.LEFT, padx=20)
+    cancel_button.pack(side=tk.RIGHT, padx=20)
+
+    acknowledgment_window.transient()
+    acknowledgment_window.grab_set()
+    acknowledgment_window.focus_force()
+
+
 def create_main_window():
     global last_interaction_time
     last_interaction_time = time.time()
@@ -220,7 +355,7 @@ def create_main_window():
 
     root = tk.Tk()
     root.title("PSOffice Bot")
-    root.geometry("1100x550")
+    root.attributes("-fullscreen", True)
 
     root.bind("<Button-1>", lambda event: reset_inactivity_timer())
     root.bind("<KeyPress>", lambda event: reset_inactivity_timer())  
@@ -228,10 +363,13 @@ def create_main_window():
     tk.Label(root, text="PSOffice Bot - Busca de Relatórios Personalizados", font=("Arial", 16)).pack(pady=20)
     
     run_button = tk.Button(root, text="Iniciar Pesquisa Personalizada (Apenas um relatório personalizado)", width=60, height=2, command=lambda: [update_user_choice(1), update_flag_inactivity(True), ask_for_script_choice(root, "não", None, user_choice)])
-    run_button.pack(pady=(15, 10))
+    run_button.pack(pady=10) 
 
     run_button_automatic = tk.Button(root, text="Iniciar Pesquisa Automática (Todos os relatórios personalizados)", width=60, height=2, command=lambda: [update_user_choice(0), update_flag_inactivity(True), run_process_in_thread("não", None, config_default_script.script_choice_default, user_choice)])
-    run_button_automatic.pack(pady=(10, 15))
+    run_button_automatic.pack(pady=10)
+
+    insights_button = tk.Button(root, text="Gerar Insights com IA", width=60, height=2,  command=lambda: [ask_for_sql_query(), update_flag_inactivity(True)])
+    insights_button.pack(pady=10)
 
     check_inactivity(root, run_button_automatic) 
 
@@ -260,16 +398,19 @@ def create_main_window():
     close_button = tk.Button(action_frame, text="Fechar", width=28, height=2, command=clear_log_and_close)
     close_button.pack(side=tk.LEFT, padx=10)
 
-    def check_inactivity_for_close():
-        global last_interaction_time
+    # def check_inactivity_for_close(value):
+    #     global last_interaction_time
         
-        if time.time() - last_interaction_time > 120:
-            logging.info("Inatividade de 2 minutos detectada. Fechando a aplicação automaticamente.")
-            clear_log_and_close()
-        else:
-            root.after(1000, check_inactivity_for_close)
+    #     if value:
+    #         if time.time() - last_interaction_time > 120:  # 120 segundos (2 minutos)
+    #             logging.info("Inatividade de 2 minutos detectada. Fechando a aplicação automaticamente.")
+    #             clear_log_and_close()
+    #         else:
+    #             root.after(1000, check_inactivity_for_close, True)
+    #     else:
+    #         pass
 
-    root.after(1000, check_inactivity_for_close)
+    # root.after(120000, check_inactivity_for_close(True))
 
     log_label = tk.Label(root, text="Logs do Sistema:", font=("Arial", 10))
     log_label.pack(pady=(10, 0), padx=10, anchor="w")
@@ -299,7 +440,7 @@ def create_main_window():
             log_viewer.insert(tk.END, "Arquivo de log não encontrado.")
             log_viewer.config(state='disabled')
 
-        root.after(1000, update_log_viewer)
+        root.after(3000, update_log_viewer)
 
     update_log_viewer()
     root.mainloop()
