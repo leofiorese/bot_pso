@@ -6,13 +6,39 @@ import os
 import config_default_script as config_default_script
 import time
 import logging
-
+import json
 from actions.query_to_dataframe.query_to_dataframe import query_to_dataframe
 from ia import generate_insights
 
 last_interaction_time = time.time()
 
 flag_inactivity_checking = False
+
+
+LAST_INPUTS_FILE = os.path.join(get_base_path(), "last_inputs.json")
+
+def _load_last_inputs():
+    try:
+        if os.path.exists(LAST_INPUTS_FILE):
+            with open(LAST_INPUTS_FILE, "r", encoding="latin-1") as f:
+                data = json.load(f)
+                return {
+                    "sql": data.get("sql", "").strip(),
+                    "prompt": data.get("prompt", "").strip(),
+                }
+    except Exception as e:
+        logging.warning(f"Falha ao carregar last_inputs.json: {e}")
+    return {"sql": "", "prompt": ""}
+
+def _save_last_inputs(sql_text, prompt_text):
+    try:
+        data = {"sql": (sql_text or "").strip(), "prompt": (prompt_text or "").strip()}
+        with open(LAST_INPUTS_FILE, "w", encoding="latin-1") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        logging.warning(f"Falha ao salvar last_inputs.json: {e}")
+
+
 
 
 def run_process_in_thread(custom_date_response, days_value, script_choice, user_choice):
@@ -250,25 +276,28 @@ def process_query(query, user_prompt):
     if df is not None:
         insights = generate_insights(df, user_prompt)
         for insight in insights:
+            print(insight)
             logging.info(insight)
     else:
         logging.error("Não foi possível carregar os dados.")
 
 
 def ask_for_sql_query():
+    state = _load_last_inputs()
+
     query_window = tk.Toplevel()
     query_window.title("Digite sua Query SQL")
     query_window.geometry("700x500")
 
     tk.Label(query_window, text="Digite a sua Query SQL para gerar o DataFrame:").pack(pady=10)
 
-    query_text = tk.Text(query_window, width=70, height=20)
-    query_text.pack(pady=10)
+    query_text = tk.Text(query_window, width=80, height=10)
+    query_text.pack(padx=12, pady=10, fill=tk.BOTH, expand=True)
 
     def on_continue():
         user_query = query_text.get("1.0", "end-1c")
+        _save_last_inputs(sql_text=user_query, prompt_text=state["prompt"])
         query_window.destroy()
-
         ask_for_user_prompt(user_query)
 
     def on_cancel():
@@ -289,6 +318,8 @@ def ask_for_sql_query():
 
 
 def ask_for_user_prompt(query):
+    state = _load_last_inputs()
+
     prompt_window = tk.Toplevel()
     prompt_window.title("Digite seu Prompt para IA")
     prompt_window.geometry("700x500")
@@ -298,10 +329,13 @@ def ask_for_user_prompt(query):
     prompt_text = tk.Text(prompt_window, width=70, height=20)
     prompt_text.pack(pady=10)
 
+    if state["prompt"]:
+        prompt_text.insert("1.0", state["prompt"])
+
     def on_continue():
         user_prompt = prompt_text.get("1.0", "end-1c")
+        _save_last_inputs(sql_text=state["sql"], prompt_text=user_prompt)
         prompt_window.destroy()
-
         ask_for_acknowledgment(query, user_prompt)
 
     def on_cancel():
@@ -393,7 +427,9 @@ def create_main_window():
 
     def clear_log_and_close():
         clear_log_file()
+        #run_ollama_subprocess("", True)
         root.destroy()
+        
 
     close_button = tk.Button(action_frame, text="Fechar", width=28, height=2, command=clear_log_and_close)
     close_button.pack(side=tk.LEFT, padx=10)
