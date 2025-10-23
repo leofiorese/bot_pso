@@ -14,7 +14,6 @@ last_interaction_time = time.time()
 
 flag_inactivity_checking = False
 
-
 LAST_INPUTS_FILE = os.path.join(get_base_path(), "last_inputs.json")
 
 def _load_last_inputs():
@@ -37,9 +36,6 @@ def _save_last_inputs(sql_text, prompt_text):
             json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
         logging.warning(f"Falha ao salvar last_inputs.json: {e}")
-
-
-
 
 def run_process_in_thread(custom_date_response, days_value, script_choice, user_choice):
     try:
@@ -99,11 +95,6 @@ def run_process_in_thread2(query, user_prompt):
     except Exception as e:
         messagebox.showerror("Erro", f"Ocorreu um erro ao iniciar o processo: {e}")
 
-
-
-
-
-
 def ask_for_script_choice(root, custom_date_response, days_value, user_choice):
     script_choice_window = tk.Toplevel(root)
     script_choice_window.title("Escolha do Script")
@@ -161,8 +152,6 @@ def ask_for_script_choice(root, custom_date_response, days_value, user_choice):
     script_choice_window.transient(root)
     script_choice_window.grab_set()
     root.wait_window(script_choice_window)
-
-
 
 def ask_for_custom_date(root, custom_date_response, days_value, script_choice, user_choice):
     
@@ -240,11 +229,9 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice, u
     custom_date_window.grab_set()
     root.wait_window(custom_date_window)
 
-
 def update_user_choice(value):
     global user_choice
     user_choice = value
-
 
 def check_inactivity(root, run_button):
     global last_interaction_time
@@ -269,7 +256,6 @@ def reset_inactivity_timer():
     global last_interaction_time
     last_interaction_time = time.time()
 
-
 def process_query(query, user_prompt):
     df = query_to_dataframe(query)
 
@@ -280,7 +266,6 @@ def process_query(query, user_prompt):
             logging.info(insight)
     else:
         logging.error("Não foi possível carregar os dados.")
-
 
 def ask_for_sql_query():
     state = _load_last_inputs()
@@ -316,7 +301,6 @@ def ask_for_sql_query():
     query_window.grab_set()
     query_window.focus_force()
 
-
 def ask_for_user_prompt(query):
     state = _load_last_inputs()
 
@@ -350,7 +334,6 @@ def ask_for_user_prompt(query):
     continue_button.pack(side=tk.LEFT, padx=10)
     cancel_button.pack(side=tk.RIGHT, padx=10)
 
-
 def ask_for_acknowledgment(query, user_prompt):
     acknowledgment_window = tk.Toplevel()
     acknowledgment_window.title("Aviso sobre o Uso de IA")
@@ -378,7 +361,6 @@ def ask_for_acknowledgment(query, user_prompt):
     acknowledgment_window.transient()
     acknowledgment_window.grab_set()
     acknowledgment_window.focus_force()
-
 
 def create_main_window():
     global last_interaction_time
