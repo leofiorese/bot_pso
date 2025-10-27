@@ -7,10 +7,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# pd.set_option('display.max_rows', None)
-# pd.set_option('display.max_columns', None)
-# pd.set_option('display.width', 1000)
-
 def get_sqlalchemy_engine():
     host = os.getenv("MYSQL_HOST", "localhost")
     user = os.getenv("MYSQL_USER", "root")
@@ -28,8 +24,6 @@ def query_to_dataframe(query):
         engine = get_sqlalchemy_engine()
 
         df = pd.read_sql(query, engine)
-
-        # df_markdown = df.to_markdown(index=False, tablefmt="github")
         
         logging.info(f"Consulta executada com sucesso! {len(df)} registros carregados.")
 

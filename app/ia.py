@@ -5,6 +5,8 @@ import logging
 
 from actions.query_to_dataframe.query_to_dataframe import query_to_dataframe
 
+from actions.upsert_data.upsert_insights_llm import upsert_data as upsert_insights_llm
+
 # modelos disponiveis:
 # gpt-oss:20b + think = medium
 # llama3.1:8b 
@@ -17,14 +19,14 @@ def dataframe_to_text(df, user_prompt):
     resumo = f"""
     Como premissa inicial, quero que você sempre faça uma análise detalhada de todos os dados fornecidos em meu dataframe e responda com insights valiosos e detalhados, cruzando todos os dados e respeitando o escopo definido pelo usuário.
 
-    -----------------------------------------------------------------------------------------------------------
+    {"-"*50}
 
     Papel: 
     
     Você é um Analista de Dados e Projetos Sênior, especialista em finanças e operações. 
     Sua principal habilidade é analisar DataFrames brutos, identificar padrões, calcular métricas-chave e fornecer insights acionáveis que ajudem na tomada de decisão gerencial.
-    
-    -----------------------------------------------------------------------------------------------------------
+
+    {"-"*50}
 
     Premissas da Análise:
     - Colunas que contêm o nome "VALOR" ou "CUSTO" representam valores monetários em Reais (R$).
@@ -35,13 +37,13 @@ def dataframe_to_text(df, user_prompt):
     - Colunas que contêm o nome "TRABALHO_..._PROJ", sendo "..." qualquer sufixo, representam horas totais de trabalho de um projeto, logo para mesmos valores de "PROJ_ID" deve-se considerar apenas um.
     - Colunas que contêm o nome "TRABALHO_..._ATIVIDADE", sendo "..." qualquer sufixo, representam horas totais de trabalho de uma atividade, logo para mesmos valores de "ATIV_ID" deve-se considerar apenas um.
 
-    -----------------------------------------------------------------------------------------------------------
+    {"-"*50}
 
     Regras do negócio:
     - São trabalhadas 8 horas / dia. Totalizando 40 horas / semana.
     - Feriados e ausências não são contabilizados.
 
-    -----------------------------------------------------------------------------------------------------------
+    {"-"*50}
 
     Modelo de Resposta Esperado:
 
@@ -57,27 +59,34 @@ def dataframe_to_text(df, user_prompt):
     4) Recomendações (O que deve ser feito?):
     Forneça recomendações práticas e específicas para mitigar riscos ou aproveitar oportunidades identificadas na análise. Utilize bullet points para listar as recomendações.
 
-    -----------------------------------------------------------------------------------------------------------
+    {"-"*50}
 
     Formato da Resposta Esperado:
     - Formato JSON com os campos:
+        - chaves_identificadores -> Deve-se criar um campo para cada chave identificadoras fixas (não criar nem retirar as chaves descritas) presente no dataframe (PROJ_ID, CODIGO_PROJETO, VALOR_PROJETO, TX_ID_RECURSO, ATIV_ID, ATRIB_ID, APON_ID, USU_ID, PROJREC_ID). Caso a chave não exista no dataframe, atribui-se NULL / NONE e nunca invente valores, apenas aqueles vistos no dataframe.
         - analise_resumida -> Deve-se criar um campo para cada dado da análise e para cada métrica.
         - insights_acionaveis -> Deve-se um campo para os insights detalhados dados. Em formato de bullet points / texto completo.
         - pontos_de_atencao -> Deve-se criar um campo para os riscos, atenção, gargalos ou oportunidades. Em formato de bullet points / texto completo.
+        - recomendacoes -> Deve-se criar um campo para as recomendações práticas e específicas de acordo com a análise feita por você. Está é a ultima etapa para apoio à tomada de decisão. Em formato de bullet points / texto completo.
 
     Exemplo do JSON Esperado (Adapter conforme os dados analisados, escopo do usuário e métricas disponíveis):
     {{
+        "chaves_identificadoras": {{
+            "PROJ_ID": ...,
+            "CODIGO_PROJETO": ...,
+            "VALOR_PROJETO": ...,
+            "USU_ID": ...
+        }},
         "analise_resumida": {{
-            "PROJ_ID": 10,
-            "CODIGO_PROJETO": "PROJ-001",
-            "VALOR_PROJETO": "R$ 50.000,00",
-            "media_horas_por_projeto": 200,
+            "margem_...": ...,
+            "custo_hora_medio": ...,
+            "media_horas_por_projeto": ...,
             "MÉTRICA X": {{
-                "total": "...",
-                "média": "...",
-                "mediana": "...",
-                "máximo": "...",
-                "mínimo": "..."
+                "total": ...,
+                "média": ...,
+                "mediana": ...,
+                "máximo": ...,
+                "mínimo": ...
             }},
             ...
         }},
@@ -98,7 +107,7 @@ def dataframe_to_text(df, user_prompt):
         ]
     }}
 
-    -----------------------------------------------------------------------------------------------------------
+    {"-"*50}
 
     Observações da Resposta Esperada:
 
@@ -111,17 +120,19 @@ def dataframe_to_text(df, user_prompt):
     - Utilize linguagem formal e técnica, adequada para um público gerencial.
     - A resposta final deve ser exclusivamente em Português do Brasil (pt-BR)
 
-    -----------------------------------------------------------------------------------------------------------
+    {"-"*50}
 
     Segue o dataframe completo:
 
     {df_markdown}
 
-    -----------------------------------------------------------------------------------------------------------
+    {"-"*50}
 
     Escopo a ser realizado: 
 
     {user_prompt}
+
+    {"-"*50}
     """
 
     logging.info("Prompt enviado para o modelo IA: \n%s", resumo)
@@ -154,6 +165,11 @@ def generate_insights(df, user_prompt):
         )
 
         clear_response = response['message']['content']
+
+        logging.info("Resposta recebida da LLM: \n%s", clear_response)
+        logging.info("-" * 50)
+
+        upsert_insights_llm(clear_response)
 
         try:
             insights.append(clear_response)

@@ -9,6 +9,7 @@ import logging
 import json
 from actions.query_to_dataframe.query_to_dataframe import query_to_dataframe
 from ia import generate_insights
+from actions.upsert_data.upsert_insights_llm import upsert_data as upsert_insights_llm
 
 last_interaction_time = time.time()
 
@@ -260,10 +261,7 @@ def process_query(query, user_prompt):
     df = query_to_dataframe(query)
 
     if df is not None:
-        insights = generate_insights(df, user_prompt)
-        for insight in insights:
-            print(insight)
-            logging.info(insight)
+        generate_insights(df, user_prompt)
     else:
         logging.error("Não foi possível carregar os dados.")
 
@@ -278,6 +276,9 @@ def ask_for_sql_query():
 
     query_text = tk.Text(query_window, width=80, height=10)
     query_text.pack(padx=12, pady=10, fill=tk.BOTH, expand=True)
+
+    if state["sql"]:
+        query_text.insert("1.0", state["sql"])
 
     def on_continue():
         user_query = query_text.get("1.0", "end-1c")
@@ -409,7 +410,6 @@ def create_main_window():
 
     def clear_log_and_close():
         clear_log_file()
-        #run_ollama_subprocess("", True)
         root.destroy()
         
 
