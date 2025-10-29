@@ -85,11 +85,11 @@ def get_dateadd_value(custom_date_response, days_value, script_choice):
     
     defaults = {
         "Orçado": "-30",
-        "Realizado": "-4",
+        "Realizado": "-10",
         "Planejado": "-30"
     }  
     
-    return defaults.get(script_choice, "-4")
+    return defaults.get(script_choice, "-10")
 
 def goto_report(page, dateadd_string, script_choice):
     logging.info("Indo para tela de relatório...")
