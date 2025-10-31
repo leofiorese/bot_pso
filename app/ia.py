@@ -41,7 +41,7 @@ def dataframe_to_text(df, user_prompt):
 
     Regras do negócio:
     - São trabalhadas 8 horas / dia. Totalizando 40 horas / semana.
-    - Feriados e ausências não são contabilizados.
+    - Ausências não são contabilizados.
 
     {"-"*50}
 
@@ -69,13 +69,16 @@ def dataframe_to_text(df, user_prompt):
         - pontos_de_atencao -> Deve-se criar um campo para os riscos, atenção, gargalos ou oportunidades. Em formato de bullet points / texto completo.
         - recomendacoes -> Deve-se criar um campo para as recomendações práticas e específicas de acordo com a análise feita por você. Está é a ultima etapa para apoio à tomada de decisão. Em formato de bullet points / texto completo.
 
-    Exemplo do JSON Esperado (Adapter conforme os dados analisados, escopo do usuário e métricas disponíveis):
+    Exemplo do JSON Esperado (Adaptar conforme os dados analisados, escopo do usuário e métricas disponíveis):
+
+    ```json
     {{
         "chaves_identificadoras": {{
             "PROJ_ID": ...,
             "CODIGO_PROJETO": ...,
             "VALOR_PROJETO": ...,
             "USU_ID": ...
+            ...
         }},
         "analise_resumida": {{
             "margem_...": ...,
@@ -106,16 +109,21 @@ def dataframe_to_text(df, user_prompt):
             ...
         ]
     }}
+    ```
 
     {"-"*50}
 
     Observações da Resposta Esperada:
 
+    - Sempre reponda somente no formato esperado. 
+    - Não pode-se fugir do formato de resposta dado.
+    - Sempre mantenha os nomes das cinco chaves do JSON, colocando cada dado em sua respectiva seção correspondente (chaves_identificadoras; analise_resumida; insights_acionaveis; pontos_de_atencao; recomendacoes) 
     - Sempre considere o escopo definido pelo usuário ao gerar a análise e os insights.
     - Nunca crie tabelas nos insights, apenas utilize texto descritivo e bullet points. O formato pode ser -> "- Insight 1: descrição detalhada do insight."
-    - Em caso de tabelas, use o formato markdown para melhor visualização.
     - Sempre que possível, utilize métricas como médias, medianas, totais, máximos e mínimos para enriquecer a análise.
     - Podem haver múltiplos insights, não se limite a apenas um.
+    - Podem haver múltiplos pontos de atenção, não se limite a apenas um.
+    - Podem haver múltiplas recomendações, não se limite a apenas um.
     - Seja objetivo e direto ao ponto, evitando rodeios desnecessários.
     - Utilize linguagem formal e técnica, adequada para um público gerencial.
     - A resposta final deve ser exclusivamente em Português do Brasil (pt-BR)
@@ -165,6 +173,8 @@ def generate_insights(df, user_prompt):
         )
 
         clear_response = response['message']['content']
+
+        print(clear_response)
 
         logging.info("Resposta recebida da LLM: \n%s", clear_response)
         logging.info("-" * 50)

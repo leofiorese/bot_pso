@@ -8,8 +8,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 def get_sqlalchemy_engine():
-    host = os.getenv("MYSQL_HOST", "localhost")
-    user = os.getenv("MYSQL_USER", "root")
+    host = os.getenv("MYSQL_HOST", "")
+    user = os.getenv("MYSQL_USER", "remoto")
     password = os.getenv("MYSQL_PASSWORD", "")
     database = os.getenv("MYSQL_DB", None)
     port = os.getenv("MYSQL_PORT", "3306")
