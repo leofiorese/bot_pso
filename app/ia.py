@@ -63,7 +63,10 @@ def dataframe_to_text(df, user_prompt):
 
     Formato da Resposta Esperado:
     - Formato JSON com os campos:
-        - chaves_identificadores -> Deve-se criar um campo para cada chave identificadoras fixas (não criar nem retirar as chaves descritas) presente no dataframe (PROJ_ID, CODIGO_PROJETO, VALOR_PROJETO, TX_ID_RECURSO, ATIV_ID, ATRIB_ID, APON_ID, USU_ID, PROJREC_ID). Caso a chave não exista no dataframe, atribui-se NULL / NONE e nunca invente valores, apenas aqueles vistos no dataframe.
+        - chaves_identificadoras -> Deve-se criar um campo para cada chave identificadoras fixas (não criar nem retirar as chaves descritas) presente no dataframe (PROJ_ID, CODIGO_PROJETO, VALOR_PROJETO, TX_ID_RECURSO, ATIV_ID, ATRIB_ID, APON_ID, USU_ID, PROJREC_ID). Caso a chave não exista no dataframe, atribui-se NULL / NONE e nunca invente valores, apenas aqueles vistos no dataframe.
+            - IMPORTANTE: A chave 'PROJ_ID' é obrigatória e deve sempre ser preenchida. Caso não exista no dataframe, a análise não poderá ser realizada.
+            - IMPORTANTE: Em caso de multiplos valores de PROJ_ID no dataframe, deve-se fazer uma análise para cada PROJ_ID separadamente, gerando um JSON para cada um.
+            - Importante: Em caso de multiplos PROJ_ID, o campo 'chaves_identificadoras' deve conter todos os PROJ_ID analisados, cada um com suas respectivas chaves identificadoras fixas.
         - analise_resumida -> Deve-se criar um campo para cada dado da análise e para cada métrica.
         - insights_acionaveis -> Deve-se um campo para os insights detalhados dados. Em formato de bullet points / texto completo.
         - pontos_de_atencao -> Deve-se criar um campo para os riscos, atenção, gargalos ou oportunidades. Em formato de bullet points / texto completo.
@@ -71,11 +74,11 @@ def dataframe_to_text(df, user_prompt):
 
     Exemplo do JSON Esperado (Adaptar conforme os dados analisados, escopo do usuário e métricas disponíveis):
 
-    ```json
+    "```json
     {{
         "chaves_identificadoras": {{
             "PROJ_ID": ...,
-            "CODIGO_PROJETO": ...,
+            "CODIGO_PROJETO": "",
             "VALOR_PROJETO": ...,
             "USU_ID": ...
             ...
@@ -109,7 +112,7 @@ def dataframe_to_text(df, user_prompt):
             ...
         ]
     }}
-    ```
+    ```"
 
     {"-"*50}
 
@@ -133,6 +136,13 @@ def dataframe_to_text(df, user_prompt):
     Segue o dataframe completo:
 
     {df_markdown}
+
+    {"-"*50}
+
+    - Sempre reponda estritamente e somente no formato esperado descrito no item "Exemplo do JSON Esperado (Adaptar conforme os dados analisados, escopo do usuário e métricas disponíveis):".
+    - Não pode-se fugir do formato de resposta dado no item "Formato da Resposta Esperado:".
+    - Sempre siga estritamente conforme as "Observações da Resposta Esperada:".
+    - Sempre mantenha os nomes das cinco chaves do JSON, colocando cada dado em sua respectiva seção correspondente (chaves_identificadoras; analise_resumida; insights_acionaveis; pontos_de_atencao; recomendacoes)
 
     {"-"*50}
 
