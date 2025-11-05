@@ -1,0 +1,280 @@
+import logging
+import pandas as pd
+from db.db import get_conn
+from datetime import datetime
+import os
+
+TABLE_COLUMNS = [
+    "MF_ID",
+    "EMP_ID",
+    "CLI_ID",
+    "FORN_ID",
+    "PROJ_ID",
+    "CR_ID",
+    "USU_ID",
+    "TIPO",
+    "SUBTIPO",
+    "VALOR",
+    "VALOR_COM_IMPOSTOS",
+    "VALOR_SEM_RET",
+    "VALOR_MULTA",
+    "VALOR_JUROS",
+    "VALOR_PAGO",
+    "SITUACAO",
+    "NOTA_FISCAL",
+    "NOTA_FISCAL_ORD",
+    "RPS",
+    "DATA_REFERENCIA",
+    "DATA_VENCIMENTO",
+    "DATA_VENC_ORIG",
+    "DT_PAGAMENTO",
+    "DATA_EMISSAO",
+    "RGR_ID",
+    "OBSERVACAO",
+    "DESCRICAO",
+    "CODIGO_SERVICO",
+    "CATEGORIA_ID_MYFINANCE",
+    "CENTRO_RECEITA_ID_MYFINANCE",
+    "CONTA_RECEBIMENTO_ID_MYFINANCE",
+    "NFE_COD_VER",
+    "NOTIFICACAO",
+    "MYFINANCE_ID",
+    "READONLY",
+    "INCLUIDO_EM",
+    "ALTERADO_EM",
+    "AUX",
+    "FAT_ID",
+    "CONTA_COBRANCA_ID_COBRATO",
+    "TEMPLATE_ID_EMITES",
+    "BILLIMATIC_ID",
+    "UDF1",
+    "UDF2",
+    "UDF3",
+    "UDF4",
+    "UDF5",
+    "UDF6",
+    "UDF7",
+    "UDF8",
+    "UDF9",
+    "UDF10",
+    "ALIQ_APROX",
+    "CONTA_RECEBIVEIS_ID_MYFINANCE",
+    "MODELO_COBRANCA_ID_COBRATO",
+    "OMIE_ID",
+    "OMIE_SERVICO",
+    "OMIE_COD_INTERNO",
+    "OMIE_ID_ANTIGO",
+    "OMIE_COD_INTERNO_ANTIGO",
+    "OMIE_SERVICO_ANTIGO"
+]
+
+CREATE_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS `FATURAMENTO` (
+    `MF_ID` INT,
+    `EMP_ID` INT,
+    `CLI_ID` INT,
+    `FORN_ID` INT,
+    `PROJ_ID` INT,
+    `CR_ID` INT,
+    `USU_ID` INT,
+    `TIPO` INT,
+    `SUBTIPO` INT,
+    `VALOR` DECIMAL(18,2),
+    `VALOR_COM_IMPOSTOS` DECIMAL(18,2),
+    `VALOR_SEM_RET` DECIMAL(18,2),
+    `VALOR_MULTA` DECIMAL(18,2),
+    `VALOR_JUROS` DECIMAL(18,2),
+    `VALOR_PAGO` DECIMAL(18,2),
+    `SITUACAO` VARCHAR(100),
+    `NOTA_FISCAL` VARCHAR(100),
+    `NOTA_FISCAL_ORD` VARCHAR(100),
+    `RPS` VARCHAR(100),
+    `DATA_REFERENCIA` DATE,
+    `DATA_VENCIMENTO` DATE,
+    `DATA_VENC_ORIG` DATE,
+    `DT_PAGAMENTO` DATE,
+    `DATA_EMISSAO` DATE,
+    `RGR_ID` INT,
+    `OBSERVACAO` TEXT,
+    `DESCRICAO` TEXT,
+    `CODIGO_SERVICO` VARCHAR(100),
+    `CATEGORIA_ID_MYFINANCE` INT,
+    `CENTRO_RECEITA_ID_MYFINANCE` INT,
+    `CONTA_RECEBIMENTO_ID_MYFINANCE` INT,
+    `NFE_COD_VER` VARCHAR(50),
+    `NOTIFICACAO` VARCHAR(255),
+    `MYFINANCE_ID` INT,
+    `READONLY` VARCHAR(10),
+    `INCLUIDO_EM` DATE,
+    `ALTERADO_EM` DATE,
+    `AUX` DECIMAL(18,2),
+    `FAT_ID` INT,
+    `CONTA_COBRANCA_ID_COBRATO` INT,
+    `TEMPLATE_ID_EMITES` INT,
+    `BILLIMATIC_ID` INT,
+    `UDF1` VARCHAR(255),
+    `UDF2` VARCHAR(255),
+    `UDF3` VARCHAR(255),
+    `UDF4` VARCHAR(255),
+    `UDF5` VARCHAR(255),
+    `UDF6` VARCHAR(255),
+    `UDF7` VARCHAR(255),
+    `UDF8` VARCHAR(255),
+    `UDF9` VARCHAR(255),
+    `UDF10` VARCHAR(255),
+    `ALIQ_APROX` DECIMAL(10,2),
+    `CONTA_RECEBIVEIS_ID_MYFINANCE` INT,
+    `MODELO_COBRANCA_ID_COBRATO` INT,
+    `OMIE_ID` INT,
+    `OMIE_SERVICO` VARCHAR(255),
+    `OMIE_COD_INTERNO` VARCHAR(255),
+    `OMIE_ID_ANTIGO` INT,
+    `OMIE_COD_INTERNO_ANTIGO` VARCHAR(255),
+    `OMIE_SERVICO_ANTIGO` VARCHAR(255),
+
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`MF_ID`)
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+"""
+
+UPSERT_SQL = """
+INSERT INTO FATURAMENTO (
+    MF_ID, EMP_ID, CLI_ID, FORN_ID, PROJ_ID, CR_ID, USU_ID, TIPO, SUBTIPO,
+    VALOR, VALOR_COM_IMPOSTOS, VALOR_SEM_RET, VALOR_MULTA, VALOR_JUROS, VALOR_PAGO,
+    SITUACAO, NOTA_FISCAL, NOTA_FISCAL_ORD, RPS, DATA_REFERENCIA, DATA_VENCIMENTO, DATA_VENC_ORIG, DT_PAGAMENTO, DATA_EMISSAO,
+    RGR_ID, OBSERVACAO, DESCRICAO, CODIGO_SERVICO, CATEGORIA_ID_MYFINANCE, CENTRO_RECEITA_ID_MYFINANCE,
+    CONTA_RECEBIMENTO_ID_MYFINANCE, NFE_COD_VER, NOTIFICACAO, MYFINANCE_ID, READONLY, INCLUIDO_EM, ALTERADO_EM, AUX, FAT_ID,
+    CONTA_COBRANCA_ID_COBRATO, TEMPLATE_ID_EMITES, BILLIMATIC_ID, UDF1, UDF2, UDF3, UDF4, UDF5, UDF6, UDF7, UDF8, UDF9, UDF10,
+    ALIQ_APROX, CONTA_RECEBIVEIS_ID_MYFINANCE, MODELO_COBRANCA_ID_COBRATO, OMIE_ID, OMIE_SERVICO, OMIE_COD_INTERNO,
+    OMIE_ID_ANTIGO, OMIE_COD_INTERNO_ANTIGO, OMIE_SERVICO_ANTIGO
+) VALUES (
+    %(MF_ID)s, %(EMP_ID)s, %(CLI_ID)s, %(FORN_ID)s, %(PROJ_ID)s, %(CR_ID)s, %(USU_ID)s, %(TIPO)s, %(SUBTIPO)s,
+    %(VALOR)s, %(VALOR_COM_IMPOSTOS)s, %(VALOR_SEM_RET)s, %(VALOR_MULTA)s, %(VALOR_JUROS)s, %(VALOR_PAGO)s,
+    %(SITUACAO)s, %(NOTA_FISCAL)s, %(NOTA_FISCAL_ORD)s, %(RPS)s, %(DATA_REFERENCIA)s, %(DATA_VENCIMENTO)s, %(DATA_VENC_ORIG)s, %(DT_PAGAMENTO)s, %(DATA_EMISSAO)s,
+    %(RGR_ID)s, %(OBSERVACAO)s, %(DESCRICAO)s, %(CODIGO_SERVICO)s, %(CATEGORIA_ID_MYFINANCE)s, %(CENTRO_RECEITA_ID_MYFINANCE)s,
+    %(CONTA_RECEBIMENTO_ID_MYFINANCE)s, %(NFE_COD_VER)s, %(NOTIFICACAO)s, %(MYFINANCE_ID)s, %(READONLY)s, %(INCLUIDO_EM)s, %(ALTERADO_EM)s, %(AUX)s, %(FAT_ID)s,
+    %(CONTA_COBRANCA_ID_COBRATO)s, %(TEMPLATE_ID_EMITES)s, %(BILLIMATIC_ID)s, %(UDF1)s, %(UDF2)s, %(UDF3)s, %(UDF4)s, %(UDF5)s, %(UDF6)s, %(UDF7)s, %(UDF8)s, %(UDF9)s, %(UDF10)s,
+    %(ALIQ_APROX)s, %(CONTA_RECEBIVEIS_ID_MYFINANCE)s, %(MODELO_COBRANCA_ID_COBRATO)s, %(OMIE_ID)s, %(OMIE_SERVICO)s, %(OMIE_COD_INTERNO)s,
+    %(OMIE_ID_ANTIGO)s, %(OMIE_COD_INTERNO_ANTIGO)s, %(OMIE_SERVICO_ANTIGO)s
+)
+ON DUPLICATE KEY UPDATE
+    EMP_ID = VALUES(EMP_ID),
+    CLI_ID = VALUES(CLI_ID),
+    FORN_ID = VALUES(FORN_ID),
+    PROJ_ID = VALUES(PROJ_ID),
+    CR_ID = VALUES(CR_ID),
+    USU_ID = VALUES(USU_ID),
+    TIPO = VALUES(TIPO),
+    SUBTIPO = VALUES(SUBTIPO),
+    VALOR = VALUES(VALOR),
+    VALOR_COM_IMPOSTOS = VALUES(VALOR_COM_IMPOSTOS),
+    VALOR_SEM_RET = VALUES(VALOR_SEM_RET),
+    VALOR_MULTA = VALUES(VALOR_MULTA),
+    VALOR_JUROS = VALUES(VALOR_JUROS),
+    VALOR_PAGO = VALUES(VALOR_PAGO),
+    SITUACAO = VALUES(SITUACAO),
+    NOTA_FISCAL = VALUES(NOTA_FISCAL),
+    NOTA_FISCAL_ORD = VALUES(NOTA_FISCAL_ORD),
+    RPS = VALUES(RPS),
+    DATA_REFERENCIA = VALUES(DATA_REFERENCIA),
+    DATA_VENCIMENTO = VALUES(DATA_VENCIMENTO),
+    DATA_VENC_ORIG = VALUES(DATA_VENC_ORIG),
+    DT_PAGAMENTO = VALUES(DT_PAGAMENTO),
+    DATA_EMISSAO = VALUES(DATA_EMISSAO),
+    RGR_ID = VALUES(RGR_ID),
+    OBSERVACAO = VALUES(OBSERVACAO),
+    DESCRICAO = VALUES(DESCRICAO),
+    CODIGO_SERVICO = VALUES(CODIGO_SERVICO),
+    CATEGORIA_ID_MYFINANCE = VALUES(CATEGORIA_ID_MYFINANCE),
+    CENTRO_RECEITA_ID_MYFINANCE = VALUES(CENTRO_RECEITA_ID_MYFINANCE),
+    CONTA_RECEBIMENTO_ID_MYFINANCE = VALUES(CONTA_RECEBIMENTO_ID_MYFINANCE),
+    NFE_COD_VER = VALUES(NFE_COD_VER),
+    NOTIFICACAO = VALUES(NOTIFICACAO),
+    MYFINANCE_ID = VALUES(MYFINANCE_ID),
+    READONLY = VALUES(READONLY),
+    INCLUIDO_EM = VALUES(INCLUIDO_EM),
+    ALTERADO_EM = VALUES(ALTERADO_EM),
+    AUX = VALUES(AUX),
+    FAT_ID = VALUES(FAT_ID),
+    CONTA_COBRANCA_ID_COBRATO = VALUES(CONTA_COBRANCA_ID_COBRATO),
+    TEMPLATE_ID_EMITES = VALUES(TEMPLATE_ID_EMITES),
+    BILLIMATIC_ID = VALUES(BILLIMATIC_ID),
+    UDF1 = VALUES(UDF1),
+    UDF2 = VALUES(UDF2),
+    UDF3 = VALUES(UDF3),
+    UDF4 = VALUES(UDF4),
+    UDF5 = VALUES(UDF5),
+    UDF6 = VALUES(UDF6),
+    UDF7 = VALUES(UDF7),
+    UDF8 = VALUES(UDF8),
+    UDF9 = VALUES(UDF9),
+    UDF10 = VALUES(UDF10),
+    ALIQ_APROX = VALUES(ALIQ_APROX),
+    CONTA_RECEBIVEIS_ID_MYFINANCE = VALUES(CONTA_RECEBIVEIS_ID_MYFINANCE),
+    MODELO_COBRANCA_ID_COBRATO = VALUES(MODELO_COBRANCA_ID_COBRATO),
+    OMIE_ID = VALUES(OMIE_ID),
+    OMIE_SERVICO = VALUES(OMIE_SERVICO),
+    OMIE_COD_INTERNO = VALUES(OMIE_COD_INTERNO),
+    OMIE_ID_ANTIGO = VALUES(OMIE_ID_ANTIGO),
+    OMIE_COD_INTERNO_ANTIGO = VALUES(OMIE_COD_INTERNO_ANTIGO),
+    OMIE_SERVICO_ANTIGO = VALUES(OMIE_SERVICO_ANTIGO);
+"""
+
+def create_table(cursor, table_name):
+    try:
+        cursor.execute(CREATE_TABLE_SQL)
+        logging.info(f"Tabela {table_name} criada/verificada.")
+    except Exception as e:
+        logging.error(f"Erro ao criar/verificar a tabela: {e}")
+        raise
+
+def convert_date(value):
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value, '%d/%m/%Y').strftime('%Y-%m-%d')
+        except ValueError:
+            return None  
+    return value
+
+def clean_data(value, column_name):
+    if column_name in [
+        "DATA_REFERENCIA","DATA_VENCIMENTO","DATA_VENC_ORIG","DT_PAGAMENTO",
+        "DATA_EMISSAO","INCLUIDO_EM","ALTERADO_EM"
+    ]:
+        return convert_date(value)
+    if pd.isna(value) or value == "" or value is None or pd.isnull(value):
+        return None
+    return value
+
+def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
+    conn = None
+    cursor = None
+    try:
+        conn = get_conn()
+        cursor = conn.cursor()
+        create_table(cursor, table_name)
+        for col in df.columns:
+            df[col] = df[col].apply(lambda x: clean_data(x, col))
+        for _, row in df.iterrows():
+            data_tuple = row.to_dict()
+            for key, value in data_tuple.items():
+                if isinstance(value, float) and pd.isna(value):
+                    data_tuple[key] = None 
+            cursor.execute(UPSERT_SQL, data_tuple)
+        conn.commit()
+        if os.path.exists(csv_file_path):
+            os.remove(csv_file_path)
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()

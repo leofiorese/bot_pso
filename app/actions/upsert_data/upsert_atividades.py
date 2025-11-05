@@ -1,0 +1,317 @@
+import logging
+import pandas as pd
+from db.db import get_conn
+from datetime import datetime
+import os
+
+TABLE_COLUMNS = [
+    "ATIV_ID",
+    "PROJ_ID",
+    "ATIV_ID_PAI",
+    "EXT_TASK_UID",
+    "NOME",
+    "DESCRICAO",
+    "COMENTARIO",
+    "DT_INICIO",
+    "DT_FIM",
+    "DT_FIM_REAL",
+    "B_DT_INICIO",
+    "B_DT_FIM",
+    "DT_INICIO_REAL",
+    "TRABALHO_PREVISTO",
+    "TRABALHO_REALIZADO",
+    "TRABALHO_FALTANDO",
+    "TRABALHO_APONTADO",
+    "LIMITE_MINUTOS",
+    "B_TRABALHO_PREVISTO",
+    "ORDEM",
+    "CALC_ORDEM",
+    "CALC_NIVEL",
+    "DURACAO_PREVISTA",
+    "B_DURACAO_PREVISTA",
+    "L_DT_INICIO",
+    "L_DT_FIM",
+    "L_DURACAO_PREVISTA",
+    "IND_ENCERRADA",
+    "IND_ETAPA",
+    "IND_APROVADA",
+    "IND_APO_BLOQUEADO",
+    "TIPO",
+    "WBS",
+    "BCWP",
+    "BCWS",
+    "B_BCWP",
+    "VA_VP",
+    "CR_VC",
+    "ESTADO",
+    "IND_OS",
+    "IND_OS_INICIAL",
+    "IND_OS_FINAL",
+    "TDE_ID_FILHO",
+    "IND_HORAS_FATURAVEIS",
+    "OS_ID_ATIV",
+    "INCLUIDO_EM",
+    "ALTERADO_EM",
+    "ESTADO_OS",
+    "VALOR",
+    "VALOR_FATURADO",
+    "PRECEDENTES",
+    "UDF1",
+    "UDF2",
+    "UDF3",
+    "UDF4",
+    "UDF5",
+    "UDF6",
+    "UDF7",
+    "UDF8",
+    "UDF9",
+    "UDF10",
+    "AUX1",
+    "TRELLO_CARD_ID",
+    "ENDERECO",
+    "ATIV_JIRA_ID",
+    "AGILE_PROJ_ID",
+    "AGILE_SPRINT_ID",
+    "AGILE_ISSUE_ID",
+    "AGILE_DT_INICIO",
+    "AGILE_DT_FIM",
+    "USU_APROV_ETAPA",
+    "AGILE_EPIC_ID"
+]
+
+CREATE_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS `ATIVIDADES` (
+    `ATIV_ID` INT,
+    `PROJ_ID` INT,
+    `ATIV_ID_PAI` INT,
+    `EXT_TASK_UID` VARCHAR(255),
+    `NOME` VARCHAR(255),
+    `DESCRICAO` TEXT,
+    `COMENTARIO` TEXT,
+    `DT_INICIO` DATE,
+    `DT_FIM` DATE,
+    `DT_FIM_REAL` DATE,
+    `B_DT_INICIO` DATE,
+    `B_DT_FIM` DATE,
+    `DT_INICIO_REAL` DATE,
+    `TRABALHO_PREVISTO` DECIMAL(18,2),
+    `TRABALHO_REALIZADO` DECIMAL(18,2),
+    `TRABALHO_FALTANDO` DECIMAL(18,2),
+    `TRABALHO_APONTADO` DECIMAL(18,2),
+    `LIMITE_MINUTOS` INT,
+    `B_TRABALHO_PREVISTO` DECIMAL(18,2),
+    `ORDEM` INT,
+    `CALC_ORDEM` INT,
+    `CALC_NIVEL` INT,
+    `DURACAO_PREVISTA` DECIMAL(18,2),
+    `B_DURACAO_PREVISTA` DECIMAL(18,2),
+    `L_DT_INICIO` DATE,
+    `L_DT_FIM` DATE,
+    `L_DURACAO_PREVISTA` DECIMAL(18,2),
+    `IND_ENCERRADA` BOOLEAN,
+    `IND_ETAPA` BOOLEAN,
+    `IND_APROVADA` BOOLEAN,
+    `IND_APO_BLOQUEADO` BOOLEAN,
+    `TIPO` VARCHAR(100),
+    `WBS` VARCHAR(255),
+    `BCWP` DECIMAL(18,2),
+    `BCWS` DECIMAL(18,2),
+    `B_BCWP` DECIMAL(18,2),
+    `VA_VP` DECIMAL(18,2),
+    `CR_VC` DECIMAL(18,2),
+    `ESTADO` VARCHAR(100),
+    `IND_OS` BOOLEAN,
+    `IND_OS_INICIAL` BOOLEAN,
+    `IND_OS_FINAL` BOOLEAN,
+    `TDE_ID_FILHO` INT,
+    `IND_HORAS_FATURAVEIS` BOOLEAN,
+    `OS_ID_ATIV` INT,
+    `INCLUIDO_EM` DATE,
+    `ALTERADO_EM` DATE,
+    `ESTADO_OS` VARCHAR(100),
+    `VALOR` DECIMAL(18,2),
+    `VALOR_FATURADO` DECIMAL(18,2),
+    `PRECEDENTES` TEXT,
+    `UDF1` VARCHAR(255),
+    `UDF2` VARCHAR(255),
+    `UDF3` VARCHAR(255),
+    `UDF4` VARCHAR(255),
+    `UDF5` VARCHAR(255),
+    `UDF6` VARCHAR(255),
+    `UDF7` VARCHAR(255),
+    `UDF8` VARCHAR(255),
+    `UDF9` VARCHAR(255),
+    `UDF10` VARCHAR(255),
+    `AUX1` DECIMAL(18,2),
+    `TRELLO_CARD_ID` VARCHAR(255),
+    `ENDERECO` VARCHAR(255),
+    `ATIV_JIRA_ID` BIGINT,
+    `AGILE_PROJ_ID` BIGINT,
+    `AGILE_SPRINT_ID` BIGINT,
+    `AGILE_ISSUE_ID` BIGINT,
+    `AGILE_DT_INICIO` DATE,
+    `AGILE_DT_FIM` DATE,
+    `USU_APROV_ETAPA` INT,
+    `AGILE_EPIC_ID` BIGINT,
+
+    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    PRIMARY KEY (`ATIV_ID`)
+)
+ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+"""
+
+UPSERT_SQL = """
+INSERT INTO ATIVIDADES (
+    ATIV_ID, PROJ_ID, ATIV_ID_PAI, EXT_TASK_UID, NOME, DESCRICAO, COMENTARIO,
+    DT_INICIO, DT_FIM, DT_FIM_REAL, B_DT_INICIO, B_DT_FIM, DT_INICIO_REAL,
+    TRABALHO_PREVISTO, TRABALHO_REALIZADO, TRABALHO_FALTANDO, TRABALHO_APONTADO,
+    LIMITE_MINUTOS, B_TRABALHO_PREVISTO, ORDEM, CALC_ORDEM, CALC_NIVEL,
+    DURACAO_PREVISTA, B_DURACAO_PREVISTA, L_DT_INICIO, L_DT_FIM, L_DURACAO_PREVISTA,
+    IND_ENCERRADA, IND_ETAPA, IND_APROVADA, IND_APO_BLOQUEADO, TIPO, WBS, BCWP, BCWS, B_BCWP, VA_VP, CR_VC, ESTADO, IND_OS,
+    IND_OS_INICIAL, IND_OS_FINAL, TDE_ID_FILHO, IND_HORAS_FATURAVEIS, OS_ID_ATIV, INCLUIDO_EM, ALTERADO_EM, ESTADO_OS,
+    VALOR, VALOR_FATURADO, PRECEDENTES, UDF1, UDF2, UDF3, UDF4, UDF5, UDF6, UDF7, UDF8, UDF9, UDF10,
+    AUX1, TRELLO_CARD_ID, ENDERECO, ATIV_JIRA_ID, AGILE_PROJ_ID, AGILE_SPRINT_ID, AGILE_ISSUE_ID, AGILE_DT_INICIO, AGILE_DT_FIM,
+    USU_APROV_ETAPA, AGILE_EPIC_ID
+) VALUES (
+    %(ATIV_ID)s, %(PROJ_ID)s, %(ATIV_ID_PAI)s, %(EXT_TASK_UID)s, %(NOME)s, %(DESCRICAO)s, %(COMENTARIO)s,
+    %(DT_INICIO)s, %(DT_FIM)s, %(DT_FIM_REAL)s, %(B_DT_INICIO)s, %(B_DT_FIM)s, %(DT_INICIO_REAL)s,
+    %(TRABALHO_PREVISTO)s, %(TRABALHO_REALIZADO)s, %(TRABALHO_FALTANDO)s, %(TRABALHO_APONTADO)s,
+    %(LIMITE_MINUTOS)s, %(B_TRABALHO_PREVISTO)s, %(ORDEM)s, %(CALC_ORDEM)s, %(CALC_NIVEL)s,
+    %(DURACAO_PREVISTA)s, %(B_DURACAO_PREVISTA)s, %(L_DT_INICIO)s, %(L_DT_FIM)s, %(L_DURACAO_PREVISTA)s,
+    %(IND_ENCERRADA)s, %(IND_ETAPA)s, %(IND_APROVADA)s, %(IND_APO_BLOQUEADO)s, %(TIPO)s, %(WBS)s, %(BCWP)s, %(BCWS)s, %(B_BCWP)s, %(VA_VP)s, %(CR_VC)s, %(ESTADO)s, %(IND_OS)s,
+    %(IND_OS_INICIAL)s, %(IND_OS_FINAL)s, %(TDE_ID_FILHO)s, %(IND_HORAS_FATURAVEIS)s, %(OS_ID_ATIV)s, %(INCLUIDO_EM)s, %(ALTERADO_EM)s, %(ESTADO_OS)s,
+    %(VALOR)s, %(VALOR_FATURADO)s, %(PRECEDENTES)s, %(UDF1)s, %(UDF2)s, %(UDF3)s, %(UDF4)s, %(UDF5)s, %(UDF6)s, %(UDF7)s, %(UDF8)s, %(UDF9)s, %(UDF10)s,
+    %(AUX1)s, %(TRELLO_CARD_ID)s, %(ENDERECO)s, %(ATIV_JIRA_ID)s, %(AGILE_PROJ_ID)s, %(AGILE_SPRINT_ID)s, %(AGILE_ISSUE_ID)s, %(AGILE_DT_INICIO)s, %(AGILE_DT_FIM)s,
+    %(USU_APROV_ETAPA)s, %(AGILE_EPIC_ID)s
+)
+ON DUPLICATE KEY UPDATE
+    PROJ_ID = VALUES(PROJ_ID),
+    ATIV_ID_PAI = VALUES(ATIV_ID_PAI),
+    EXT_TASK_UID = VALUES(EXT_TASK_UID),
+    NOME = VALUES(NOME),
+    DESCRICAO = VALUES(DESCRICAO),
+    COMENTARIO = VALUES(COMENTARIO),
+    DT_INICIO = VALUES(DT_INICIO),
+    DT_FIM = VALUES(DT_FIM),
+    DT_FIM_REAL = VALUES(DT_FIM_REAL),
+    B_DT_INICIO = VALUES(B_DT_INICIO),
+    B_DT_FIM = VALUES(B_DT_FIM),
+    DT_INICIO_REAL = VALUES(DT_INICIO_REAL),
+    TRABALHO_PREVISTO = VALUES(TRABALHO_PREVISTO),
+    TRABALHO_REALIZADO = VALUES(TRABALHO_REALIZADO),
+    TRABALHO_FALTANDO = VALUES(TRABALHO_FALTANDO),
+    TRABALHO_APONTADO = VALUES(TRABALHO_APONTADO),
+    LIMITE_MINUTOS = VALUES(LIMITE_MINUTOS),
+    B_TRABALHO_PREVISTO = VALUES(B_TRABALHO_PREVISTO),
+    ORDEM = VALUES(ORDEM),
+    CALC_ORDEM = VALUES(CALC_ORDEM),
+    CALC_NIVEL = VALUES(CALC_NIVEL),
+    DURACAO_PREVISTA = VALUES(DURACAO_PREVISTA),
+    B_DURACAO_PREVISTA = VALUES(B_DURACAO_PREVISTA),
+    L_DT_INICIO = VALUES(L_DT_INICIO),
+    L_DT_FIM = VALUES(L_DT_FIM),
+    L_DURACAO_PREVISTA = VALUES(L_DURACAO_PREVISTA),
+    IND_ENCERRADA = VALUES(IND_ENCERRADA),
+    IND_ETAPA = VALUES(IND_ETAPA),
+    IND_APROVADA = VALUES(IND_APROVADA),
+    IND_APO_BLOQUEADO = VALUES(IND_APO_BLOQUEADO),
+    TIPO = VALUES(TIPO),
+    WBS = VALUES(WBS),
+    BCWP = VALUES(BCWP),
+    BCWS = VALUES(BCWS),
+    B_BCWP = VALUES(B_BCWP),
+    VA_VP = VALUES(VA_VP),
+    CR_VC = VALUES(CR_VC),
+    ESTADO = VALUES(ESTADO),
+    IND_OS = VALUES(IND_OS),
+    IND_OS_INICIAL = VALUES(IND_OS_INICIAL),
+    IND_OS_FINAL = VALUES(IND_OS_FINAL),
+    TDE_ID_FILHO = VALUES(TDE_ID_FILHO),
+    IND_HORAS_FATURAVEIS = VALUES(IND_HORAS_FATURAVEIS),
+    OS_ID_ATIV = VALUES(OS_ID_ATIV),
+    INCLUIDO_EM = VALUES(INCLUIDO_EM),
+    ALTERADO_EM = VALUES(ALTERADO_EM),
+    ESTADO_OS = VALUES(ESTADO_OS),
+    VALOR = VALUES(VALOR),
+    VALOR_FATURADO = VALUES(VALOR_FATURADO),
+    PRECEDENTES = VALUES(PRECEDENTES),
+    UDF1 = VALUES(UDF1),
+    UDF2 = VALUES(UDF2),
+    UDF3 = VALUES(UDF3),
+    UDF4 = VALUES(UDF4),
+    UDF5 = VALUES(UDF5),
+    UDF6 = VALUES(UDF6),
+    UDF7 = VALUES(UDF7),
+    UDF8 = VALUES(UDF8),
+    UDF9 = VALUES(UDF9),
+    UDF10 = VALUES(UDF10),
+    AUX1 = VALUES(AUX1),
+    TRELLO_CARD_ID = VALUES(TRELLO_CARD_ID),
+    ENDERECO = VALUES(ENDERECO),
+    ATIV_JIRA_ID = VALUES(ATIV_JIRA_ID),
+    AGILE_PROJ_ID = VALUES(AGILE_PROJ_ID),
+    AGILE_SPRINT_ID = VALUES(AGILE_SPRINT_ID),
+    AGILE_ISSUE_ID = VALUES(AGILE_ISSUE_ID),
+    AGILE_DT_INICIO = VALUES(AGILE_DT_INICIO),
+    AGILE_DT_FIM = VALUES(AGILE_DT_FIM),
+    USU_APROV_ETAPA = VALUES(USU_APROV_ETAPA),
+    AGILE_EPIC_ID = VALUES(AGILE_EPIC_ID);
+"""
+
+def create_table(cursor, table_name):
+    try:
+        cursor.execute(CREATE_TABLE_SQL)
+        logging.info(f"Tabela {table_name} criada/verificada.")
+    except Exception as e:
+        logging.error(f"Erro ao criar/verificar a tabela: {e}")
+        raise
+
+def convert_date(value):
+    if isinstance(value, str):
+        try:
+            return datetime.strptime(value, '%d/%m/%Y').strftime('%Y-%m-%d')
+        except ValueError:
+            return None  
+    return value
+
+def clean_data(value, column_name):
+    if column_name in [
+        "DT_INICIO","DT_FIM","DT_FIM_REAL","B_DT_INICIO","B_DT_FIM","DT_INICIO_REAL",
+        "L_DT_INICIO","L_DT_FIM","AGILE_DT_INICIO","AGILE_DT_FIM","INCLUIDO_EM","ALTERADO_EM"
+    ]:
+        return convert_date(value)
+    if pd.isna(value) or value == "" or value is None or pd.isnull(value):
+        return None
+    return value
+
+def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
+    conn = None
+    cursor = None
+    try:
+        conn = get_conn()
+        cursor = conn.cursor()
+        create_table(cursor, table_name)
+        for col in df.columns:
+            df[col] = df[col].apply(lambda x: clean_data(x, col))
+        for _, row in df.iterrows():
+            data_tuple = row.to_dict()
+            for key, value in data_tuple.items():
+                if isinstance(value, float) and pd.isna(value):
+                    data_tuple[key] = None
+            cursor.execute(UPSERT_SQL, data_tuple)
+        conn.commit()
+        if os.path.exists(csv_file_path):
+            os.remove(csv_file_path)
+    except Exception as e:
+        if conn:
+            conn.rollback()
+        raise
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
