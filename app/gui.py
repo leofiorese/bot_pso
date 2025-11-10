@@ -1,3 +1,4 @@
+# GUI.py (apenas adicionadas as novas tabelas na escolha de script; restante inalterado)
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
 from main import run_once, get_base_path
@@ -99,21 +100,45 @@ def run_process_in_thread2(query, user_prompt):
 def ask_for_script_choice(root, custom_date_response, days_value, user_choice):
     script_choice_window = tk.Toplevel(root)
     script_choice_window.title("Escolha do Script")
-    script_choice_window.geometry("400x250")
+    script_choice_window.geometry("420x700")  # aumentado apenas para comportar as novas opções
 
     script_choice_window.bind("<Button-1>", lambda event: reset_inactivity_timer())
     script_choice_window.bind("<KeyPress>", lambda event: reset_inactivity_timer())
-
 
     tk.Label(script_choice_window, text="Escolha qual script utilizar para a pesquisa:").pack(pady=(10, 5))
 
     script_choice = tk.StringVar(value="Orçado")
 
     frame_radio = tk.Frame(script_choice_window)
-    tk.Radiobutton(frame_radio, text="Orçado", variable=script_choice, value="Orçado").pack(side=tk.LEFT, padx=10)
-    tk.Radiobutton(frame_radio, text="Planejado", variable=script_choice, value="Planejado").pack(side=tk.LEFT, padx=10)
-    tk.Radiobutton(frame_radio, text="Realizado", variable=script_choice, value="Realizado").pack(side=tk.LEFT, padx=10)
-    frame_radio.pack()
+    # opções existentes
+    tk.Radiobutton(frame_radio, text="Orçado", variable=script_choice, value="Orçado").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="Planejado", variable=script_choice, value="Planejado").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="Realizado", variable=script_choice, value="Realizado").pack(anchor="w", padx=10)
+
+    # novas tabelas (nomes exatamente como usados no main/process_csv)
+    tk.Radiobutton(frame_radio, text="AGRUPAMENTO", variable=script_choice, value="AGRUPAMENTO").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="APONTAMENTOS", variable=script_choice, value="APONTAMENTOS").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="ATIVIDADES", variable=script_choice, value="ATIVIDADES").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="ATRIBUICOES", variable=script_choice, value="ATRIBUICOES").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="CALENDARIOS", variable=script_choice, value="CALENDARIOS").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="CENTROS_DE_RESULTADO", variable=script_choice, value="CENTROS_DE_RESULTADO").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="D_CALEND_PROJ", variable=script_choice, value="D_CALEND_PROJ").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="DESPESA_ORCADA", variable=script_choice, value="DESPESA_ORCADA").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="DESPESA_TIPO", variable=script_choice, value="DESPESA_TIPO").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="DESPESAS", variable=script_choice, value="DESPESAS").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="EMPRESAS", variable=script_choice, value="EMPRESAS").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="FATURAMENTO", variable=script_choice, value="FATURAMENTO").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="GRREF", variable=script_choice, value="GRREF").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="INFO_COLABS", variable=script_choice, value="INFO_COLABS").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="PROJETOS", variable=script_choice, value="PROJETOS").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="PSO_TAXA", variable=script_choice, value="PSO_TAXA").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="PSO_USU_FUNCOES", variable=script_choice, value="PSO_USU_FUNCOES").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="RECURSOS", variable=script_choice, value="RECURSOS").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="RESUMO_DE_HORAS_ATIV", variable=script_choice, value="RESUMO_DE_HORAS_ATIV").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="RESUMO_DE_HORAS", variable=script_choice, value="RESUMO_DE_HORAS").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="TAXA_HISTORICO", variable=script_choice, value="TAXA_HISTORICO").pack(anchor="w", padx=10)
+
+    frame_radio.pack(fill="both", expand=True)
 
     submitted = False
     TIMEOUT_MS = 10000  # 10 segundos

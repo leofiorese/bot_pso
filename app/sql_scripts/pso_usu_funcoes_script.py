@@ -3,7 +3,7 @@ import logging
 def script_sql(dateadd_value):
     
     return f"""
-SELECT * FROM PSO_USU_FUNCOES WHERE DT_ALTERACAO BETWEEN DATEADD(day, {dateadd_value}, GETDATE()) AND GETDATE()
+SELECT * FROM PSO_USU_FUNCOES WHERE DT_INCLUSAO BETWEEN DATEADD(day, {dateadd_value}, GETDATE()) AND GETDATE()
 """
 
 def gerar_script_final(dateadd_string):

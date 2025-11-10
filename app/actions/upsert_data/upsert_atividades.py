@@ -284,6 +284,16 @@ def clean_data(value, column_name):
         "L_DT_INICIO","L_DT_FIM","AGILE_DT_INICIO","AGILE_DT_FIM","INCLUIDO_EM","ALTERADO_EM"
     ]:
         return convert_date(value)
+    
+    if column_name in ["IND_ENCERRADA", "IND_ETAPA", "IND_APROVADA", "IND_APO_BLOQUEADO",
+                       "IND_OS", "IND_OS_INICIAL", "IND_OS_FINAL", "IND_HORAS_FATURAVEIS"]:
+        
+        if value == 'Y':
+            return True
+        
+        elif value == 'N':
+            return False
+
     if pd.isna(value) or value == "" or value is None or pd.isnull(value):
         return None
     return value

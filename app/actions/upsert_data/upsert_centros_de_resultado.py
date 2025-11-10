@@ -34,7 +34,7 @@ TABLE_COLUMNS = [
 ]
 
 CREATE_TABLE_SQL = """
-CREATE TABLE IF NOT EXISTS `CENTROS DE RESULTADO` (
+CREATE TABLE IF NOT EXISTS `CENTROS_DE_RESULTADO` (
     `CR_ID` INT,
     `NOME` VARCHAR(255),
     `DESCRICAO` TEXT,
@@ -47,8 +47,8 @@ CREATE TABLE IF NOT EXISTS `CENTROS DE RESULTADO` (
     `CALC_ORDEM` INT,
     `CALC_NIVEL` INT,
     `CALC_HIERARQUIA` DECIMAL(18,2),
-    `IND_ATIVO` VARCHAR(1),
-    `IND_ADIANTAMENTOS` VARCHAR(1),
+    `IND_ATIVO` BOOLEAN,
+    `IND_ADIANTAMENTOS` BOOLEAN,
     `INCLUIDO_EM` DATE,
     `ALTERADO_EM` DATE,
     `UDF1` VARCHAR(255),
@@ -129,6 +129,11 @@ def convert_date(value):
 def clean_data(value, column_name):
     if column_name in ["INCLUIDO_EM", "ALTERADO_EM"]:
         return convert_date(value)
+    if column_name in ["IND_ATIVO", "IND_ADIANTAMENTOS"]:
+        if value == 'Y':
+            return True 
+        elif value == 'N':
+            return False
     if pd.isna(value) or value == "" or value is None or pd.isnull(value):
         return None
     return value

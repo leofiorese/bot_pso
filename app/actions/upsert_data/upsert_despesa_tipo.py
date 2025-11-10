@@ -30,14 +30,14 @@ TABLE_COLUMNS = [
 ]
 
 CREATE_TABLE_SQL = """
-CREATE TABLE IF NOT EXISTS `DESPESAS TIPO` (
+CREATE TABLE IF NOT EXISTS `DESPESA_TIPO` (
     `DESPT_ID` INT,
     `CODIGO` VARCHAR(255),
     `NOME` VARCHAR(255),
     `DESCRICAO` TEXT,
     `TIPO` INT,
-    `RGR_VALOR_MAXIMO` DECIMAL(18,2),
-    `IND_ATIVO` VARCHAR(1),
+    `RGR_VALOR_MAXIMO` VARCHAR(255),
+    `IND_ATIVO` BOOLEAN,
     `INCLUIDO_EM` DATE,
     `ALTERADO_EM` DATE,
     `UDF1` VARCHAR(255),
@@ -65,7 +65,7 @@ COLLATE=utf8mb4_unicode_ci;
 """
 
 UPSERT_SQL = """
-INSERT INTO `DESPESAS TIPO` (
+INSERT INTO `DESPESA_TIPO` (
     DESPT_ID, CODIGO, NOME, DESCRICAO, TIPO, RGR_VALOR_MAXIMO, IND_ATIVO,
     INCLUIDO_EM, ALTERADO_EM, UDF1, UDF2, UDF3, UDF4, UDF5, UDF6, UDF7, UDF8, UDF9, UDF10,
     TP_APONTAMENTO, TAXA_ID_PGTO, TAXA_ID_FAT
@@ -117,6 +117,11 @@ def convert_date(value):
 def clean_data(value, column_name):
     if column_name in ["INCLUIDO_EM", "ALTERADO_EM"]:
         return convert_date(value)
+    if column_name == "IND_ATIVO":
+        if value == 'Y':
+            return True
+        elif value == 'N':  
+            return False
     if pd.isna(value) or value == "" or value is None or pd.isnull(value):
         return None
     return value
