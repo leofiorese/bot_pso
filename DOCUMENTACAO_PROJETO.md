@@ -1,53 +1,478 @@
-# Documentação do projeto PSOffice Bot
+# Documentação Técnica - PSOffice Bot
 
-## Visão geral
+> **Bot de automação para extração, processamento e análise de relatórios do sistema PSO (PSOffice)**
 
-O projeto automatiza a coleta de relatórios personalizados do PSOffice, salva os arquivos baixados, processa os dados e realiza operações de upsert em um banco MySQL. Ele oferece duas formas de uso: uma interface gráfica em Tkinter para interação manual ou automatizada, e um fluxo opcional de geração de insights com IA a partir de consultas SQL sobre os dados carregados.
+---
 
-## Componentes principais
+## 1. Visão Geral da Arquitetura (High-Level Design)
 
-### Automação de relatórios (app/main.py)
-- Carrega variáveis de ambiente (.env) com URLs de login e relatório do PSOffice, credenciais e modo headless do navegador Playwright. Define diretórios de download e configura o logger (`pso_bot.log`).
-- Implementa `do_login`, que navega até a tela de login, aceita o aviso de cookies quando presente e envia as credenciais antes de aguardar a estabilização da sessão.
-- A função `goto_report` seleciona e insere o script SQL apropriado em um campo de texto, aciona o botão **Testar (EXCEL)**, captura o download sugerido e salva o arquivo em `app/downloads` com timestamp.
-- O dicionário `SCRIPT_GENERATORS` despacha a construção das consultas SQL para cada tipo de relatório (Orçado, Planejado, Realizado e diversas tabelas auxiliares), enquanto `UPSERT_HANDLERS` indica como cada DataFrame deve ser gravado no banco.
-- `run_once` executa o fluxo completo: login, navegação, download, leitura do CSV, validação do número de colunas, upsert e limpeza do arquivo. Ele pode rodar em **modo automático** (percorre todos os tipos de relatório) ou **manual** (um tipo escolhido via GUI), com três tentativas e intervalos entre execuções. Também suporta um deslocamento de datas configurável via `DATEADD` na query.
+### Padrão Arquitetural
 
-### Interface gráfica (app/gui.py)
-- Janela fullscreen em Tkinter com três ações principais: buscar um único relatório personalizado, executar o ciclo completo de todos os relatórios ou gerar insights com IA.
-- Fluxo para relatórios: solicita o tipo de script (timeout de 10s com fallback para "Orçado"), pergunta se o usuário quer alterar o recorte de datas e dispara `run_once` em uma thread para não travar a interface. Há detecção de inatividade que dispara automaticamente a coleta automática após 10s sem interação.
-- Exibe e atualiza periodicamente o arquivo de log dentro da interface, além de botões para limpar log e fechar o app. Salva as últimas entradas de SQL e prompt em `last_inputs.json` para reutilização.
+O projeto segue uma arquitetura **Modular Monolítica** com separação clara de responsabilidades:
 
-### Processamento e validação do CSV (app/actions/process_csv/process_csv.py)
-- Lê arquivos CSV em `latin1` usando delimitador `;`.
-- Confere se o tipo de relatório recebido existe no mapa `TABLE_MAP` e se o número de colunas do arquivo coincide com o esperado para aquela tabela (definido nos módulos de upsert). Em caso de divergência gera erro explícito.
-- Retorna um DataFrame pandas pronto para o upsert.
+| Camada | Descrição |
+|--------|-----------|
+| **Presentation** | GUI desktop via Tkinter |
+| **Orchestration** | `main.py` coordena fluxos e despacho de scripts |
+| **Data Access** | Módulos `upsert_data` e `db.py` para persistência MySQL |
+| **Integration** | Playwright para web scraping, Ollama para IA |
 
-### Persistência dos dados (app/actions/upsert_data)
-- Cada módulo `upsert_*` define as colunas esperadas, SQL de criação da tabela e comando de upsert específico. O fluxo padrão: abrir conexão MySQL (garantindo a existência do banco), criar/verificar tabela, normalizar tipos (datas, booleanos, nulos), inserir/atualizar linhas e remover o CSV após sucesso.
-- A conexão é obtida via `db/db.py`, que carrega configurações do .env e cria o banco se necessário antes de retornar uma conexão MySQL.
-- O módulo `upsert_insights_llm.py` salva as análises produzidas pela IA em `RELATORIO_PSO_INSIGHTS_LLM`, extraindo o JSON de um bloco ```json``` da resposta, validando o `PROJ_ID` obrigatório e convertendo listas em texto Markdown para campos descritivos.
+### Stack Tecnológico
 
-### Geração de SQL
-- Os scripts em `app/sql_scripts` produzem consultas parametrizadas com `DATEADD`, permitindo alterar o recorte temporal em dias. O `SCRIPT_GENERATORS` do `main.py` seleciona o gerador adequado com base no relatório solicitado.
+| Componente | Tecnologia |
+|------------|------------|
+| **Linguagem** | Python 3.x |
+| **GUI Desktop** | Tkinter |
+| **Web Automation** | Playwright (Firefox) |
+| **Banco de Dados** | MySQL 8.x (via `mysql-connector-python`, SQLAlchemy) |
+| **IA/LLM** | Ollama (modelo `gpt-oss:20b`) |
+| **Data Processing** | Pandas |
+| **Configuração** | python-dotenv (`.env`) |
+| **Logging** | logging (arquivo `pso_bot.log`) |
 
-### Insights com IA (app/ia.py)
-- Executa uma consulta SQL fornecida pela GUI (`query_to_dataframe`), divide DataFrames grandes em blocos de até 1000 linhas e cria um prompt estruturado com regras de negócio, métricas e formato de resposta JSON.
-- Envia cada bloco para o modelo `gpt-oss:20b` via Ollama, registra logs detalhados e salva cada resposta processada no banco usando `upsert_insights_llm`.
+### Diagrama de Arquitetura
 
-### Configurações e diretórios
-- Arquivo `.env` deve definir `PSO_LOGIN_URL`, `PSO_REPORT_URL`, `PSO_USERNAME`, `PSO_PASSWORD`, `HEADLESS` e parâmetros do MySQL (`MYSQL_HOST`, `MYSQL_PORT`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_DB`).
-- `app/downloads` é criado automaticamente para armazenar os relatórios baixados; `pso_bot.log` guarda os registros do fluxo.
-- `config_default_script.py` mantém o tipo de relatório padrão selecionado pela GUI.
+```mermaid
+graph TD
+    subgraph "Presentation Layer"
+        GUI[GUI Tkinter<br/>gui.py]
+    end
 
-## Como executar
-1. Configure as variáveis de ambiente no `.env` com acesso ao PSOffice e ao banco MySQL.
-2. Instale as dependências (Python, Playwright com Firefox, drivers MySQL, Ollama se for usar IA).
-3. Execute `python -m app.gui` (ou `python app/gui.py`) para abrir a interface. Escolha entre modo automático, relatório único ou geração de insights.
-4. Acompanhe o progresso no painel de logs da interface ou no arquivo `pso_bot.log`.
+    subgraph "Orchestration Layer"
+        MAIN[Orchestrator<br/>main.py]
+        CONFIG[Config<br/>config_default_script.py]
+    end
 
-## Fluxo resumido
-1. Usuário inicia a coleta pela GUI → define tipo de relatório e recorte de datas.
-2. Playwright faz login no PSOffice, executa a query SQL correspondente e baixa o Excel/CSV.
-3. O CSV é lido pelo pandas, validado e transformado; o módulo de upsert cria/atualiza tabelas MySQL e remove o arquivo.
-4. Opcionalmente, o usuário executa uma query customizada, envia o DataFrame para a IA e grava os insights estruturados no banco.
+    subgraph "Integration Layer"
+        PLAYWRIGHT[Playwright<br/>Firefox Browser]
+        OLLAMA[Ollama LLM<br/>ia.py]
+    end
+
+    subgraph "Data Layer"
+        PROCESS[process_csv.py]
+        UPSERT[Upsert Handlers<br/>25 módulos]
+        QUERY[query_to_dataframe.py]
+        DB[db.py<br/>MySQL Connector]
+    end
+
+    subgraph "External Systems"
+        PSO[PSOffice Web<br/>Relatórios SQL]
+        MYSQL[(MySQL<br/>Database)]
+    end
+
+    GUI --> MAIN
+    GUI --> OLLAMA
+    MAIN --> CONFIG
+    MAIN --> PLAYWRIGHT
+    PLAYWRIGHT --> PSO
+    PSO -->|CSV/XLSX| PROCESS
+    PROCESS --> UPSERT
+    UPSERT --> DB
+    DB --> MYSQL
+    OLLAMA --> QUERY
+    QUERY --> DB
+    OLLAMA -->|Insights JSON| UPSERT
+```
+
+---
+
+## 2. Mapeamento de Entidades e Banco de Dados
+
+### Entidades de Domínio
+
+O sistema trabalha com **24 entidades** extraídas do PSO, divididas em:
+
+| Categoria | Entidades |
+|-----------|-----------|
+| **Relatórios Principais** | `RELATORIO_PSO_REALIZADO`, `RELATORIO_PSO_ORCADO`, `RELATORIO_PSO_PLANEJADO` |
+| **Estrutura Organizacional** | `PROJETOS`, `ATIVIDADES`, `RECURSOS`, `EMPRESAS`, `CENTROS_DE_RESULTADO` |
+| **Alocação de Pessoas** | `APONTAMENTOS`, `ATRIBUICOES`, `INFO_COLABS`, `PSO_USU_FUNCOES` |
+| **Financeiro** | `FATURAMENTO`, `DESPESAS`, `DESPESA_ORCADA`, `DESPESA_TIPO`, `PSO_TAXA`, `TAXA_HISTORICO` |
+| **Tempo/Calendário** | `CALENDARIOS`, `D_CALEND_PROJ`, `RESUMO_DE_HORAS`, `RESUMO_DE_HORAS_ATIV` |
+| **Agrupamento** | `AGRUPAMENTO`, `GRREF` |
+| **IA/Insights** | `RELATORIO_PSO_INSIGHTS_LLM` |
+
+### Diagrama ER Simplificado
+
+```mermaid
+erDiagram
+    PROJETOS {
+        int PROJ_ID PK
+        int DEPT_ID
+        int EMP_ID FK
+        int CLI_ID
+        varchar CODIGO
+        varchar NOME
+        decimal VALOR
+        date DT_INICIO
+        date DT_FIM
+    }
+    
+    ATIVIDADES {
+        int ATIV_ID PK
+        int PROJ_ID FK
+        varchar NOME
+        decimal TRABALHO_PREVISTO
+        decimal TRABALHO_APONTADO
+        date DT_INICIO
+        date DT_FIM
+    }
+    
+    APONTAMENTOS {
+        int APON_ID PK
+        int USU_ID FK
+        int ATIV_ID FK
+        int PROJ_ID FK
+        datetime DT_INICIO
+        int MINUTOS
+        int STATUS
+    }
+    
+    RECURSOS {
+        int USU_ID PK
+        varchar NOME
+        varchar EMAIL
+        int TAXA_ID FK
+        boolean ATIVO
+    }
+    
+    ATRIBUICOES {
+        int ATRIB_ID PK
+        int ATIV_ID FK
+        int USU_ID FK
+        decimal TRABALHO
+    }
+    
+    FATURAMENTO {
+        int FAT_ID PK
+        int PROJ_ID FK
+        decimal VALOR
+        date DT_FATURAMENTO
+    }
+    
+    DESPESAS {
+        int DESP_ID PK
+        int PROJ_ID FK
+        decimal VALOR
+        varchar TIPO
+    }
+    
+    INSIGHTS_LLM {
+        int id_insight PK
+        int PROJ_ID FK
+        json analise_resumida_json
+        text insights_acionaveis_md
+        text recomendacoes_md
+    }
+
+    PROJETOS ||--o{ ATIVIDADES : "contém"
+    PROJETOS ||--o{ APONTAMENTOS : "registra"
+    PROJETOS ||--o{ FATURAMENTO : "gera"
+    PROJETOS ||--o{ DESPESAS : "incorre"
+    PROJETOS ||--o{ INSIGHTS_LLM : "produz"
+    ATIVIDADES ||--o{ APONTAMENTOS : "recebe"
+    ATIVIDADES ||--o{ ATRIBUICOES : "aloca"
+    RECURSOS ||--o{ APONTAMENTOS : "realiza"
+    RECURSOS ||--o{ ATRIBUICOES : "é alocado"
+```
+
+---
+
+## 3. Documentação Detalhada por Módulo
+
+### 3.1 Camada de Orquestração
+
+#### [main.py](file:///c:/Users/leonardo.fiorese/Documents/bot_pso/app/main.py)
+
+| Aspecto | Descrição |
+|---------|-----------|
+| **Responsabilidade** | Orquestrador principal que coordena login, execução de queries SQL, download de relatórios e upsert no banco |
+| **Principais Funções** | `run_once()` - executa fluxo completo; `do_login()` - autenticação PSO; `goto_report()` - navega e baixa relatório |
+| **Dependências** | Playwright, todos os upsert handlers, todos os sql_scripts |
+| **Padrões** | **Strategy Pattern** (dicionários `SCRIPT_GENERATORS` e `UPSERT_HANDLERS` para despacho dinâmico) |
+
+```python
+# Exemplo de Strategy Pattern
+SCRIPT_GENERATORS = {
+    "Orçado": gerar_script_final_orcado,
+    "Planejado": gerar_script_final_planejado,
+    "Realizado": gerar_script_final_realizado,
+    # ... 21 outras estratégias
+}
+```
+
+---
+
+#### [gui.py](file:///c:/Users/leonardo.fiorese/Documents/bot_pso/app/gui.py)
+
+| Aspecto | Descrição |
+|---------|-----------|
+| **Responsabilidade** | Interface gráfica desktop que permite usuário escolher relatórios, configurar datas e iniciar processos |
+| **Principais Funções** | `create_main_window()` - janela principal; `ask_for_script_choice()` - seleção de relatório; `ask_for_sql_query()` - input para IA |
+| **Dependências** | Tkinter, main.py, ia.py |
+| **Padrões** | **Observer Pattern** (detecção de inatividade com `check_inactivity()`) |
+
+**Features:**
+- Detecção automática de inatividade (10s) → executa modo automático
+- Persistência de últimos inputs em `last_inputs.json`
+- Log viewer em tempo real
+- 24 opções de relatórios via RadioButton
+
+---
+
+### 3.2 Camada de Integração
+
+#### [ia.py](file:///c:/Users/leonardo.fiorese/Documents/bot_pso/app/ia.py)
+
+| Aspecto | Descrição |
+|---------|-----------|
+| **Responsabilidade** | Integração com LLM (Ollama) para geração de insights analíticos a partir de DataFrames |
+| **Principais Funções** | `generate_insights()` - envia dados para LLM; `dataframe_to_text()` - monta prompt estruturado |
+| **Dependências** | Ollama, Pandas, upsert_insights_llm |
+| **Padrões** | **Template Method** (prompt estruturado com seções fixas) |
+
+**Prompt Engineering:**
+- Define papel: "Analista de Dados e Projetos Sênior"
+- Premissas de negócio (8h/dia, 40h/semana)
+- Output esperado: JSON estruturado com 5 seções obrigatórias
+
+---
+
+### 3.3 Camada de Dados
+
+#### [db.py](file:///c:/Users/leonardo.fiorese/Documents/bot_pso/app/db/db.py)
+
+| Aspecto | Descrição |
+|---------|-----------|
+| **Responsabilidade** | Gerenciamento de conexão com MySQL, criação automática de database |
+| **Principais Funções** | `get_conn()` - retorna conexão; `_ensure_database_exists()` - cria DB se não existir |
+| **Dependências** | mysql-connector-python, python-dotenv |
+| **Padrões** | **Factory Pattern** (factory de conexões) |
+
+---
+
+#### [process_csv.py](file:///c:/Users/leonardo.fiorese/Documents/bot_pso/app/actions/process_csv/process_csv.py)
+
+| Aspecto | Descrição |
+|---------|-----------|
+| **Responsabilidade** | Leitura e validação de arquivos CSV baixados do PSO |
+| **Principais Funções** | `process_csv()` - lê CSV e valida número de colunas contra schema esperado |
+| **Dependências** | Pandas, todos os TABLE_COLUMNS dos upsert handlers |
+| **Padrões** | **Registry Pattern** (dicionário `TABLE_MAP` mapeia tipo → schema) |
+
+---
+
+#### Upsert Handlers (25 módulos)
+
+Todos seguem a mesma estrutura:
+
+```python
+# Estrutura padrão de cada upsert handler
+TABLE_COLUMNS = [...]       # Schema esperado
+CREATE_TABLE_SQL = """...""" # DDL de criação
+UPSERT_SQL = """..."""       # INSERT ON DUPLICATE KEY UPDATE
+
+def upsert_data(df, table_name, csv_path):
+    # 1. Cria tabela se não existir
+    # 2. Limpa e converte dados (datas, booleans)
+    # 3. Executa upsert row-by-row
+    # 4. Remove arquivo CSV após sucesso
+```
+
+| Padrão | Descrição |
+|--------|-----------|
+| **Repository Pattern** | Cada handler encapsula acesso a uma entidade específica |
+| **UPSERT Idempotente** | `INSERT ... ON DUPLICATE KEY UPDATE` garante idempotência |
+
+---
+
+### 3.4 SQL Scripts (24 módulos)
+
+Cada script em `sql_scripts/` gera queries parametrizadas para o PSO:
+
+```python
+# Exemplo: realizado_script.py
+def gerar_script_final(dateadd_string):
+    return f"""
+    SELECT ... 
+    FROM PSO_USUARIOS u
+    JOIN PSO_APONTAMENTOS a ON ...
+    WHERE a.DT_INICIO BETWEEN DATEADD(day, {dateadd_string}, GETDATE()) AND GETDATE()
+    """
+```
+
+---
+
+## 4. Fluxos Críticos de Negócio
+
+### 4.1 Fluxo de Extração Automática de Relatórios
+
+```mermaid
+sequenceDiagram
+    participant U as Usuário
+    participant G as GUI (Tkinter)
+    participant M as main.py
+    participant P as Playwright
+    participant PSO as PSOffice Web
+    participant CSV as process_csv
+    participant DB as MySQL
+
+    U->>G: Clica "Iniciar Pesquisa Automática"
+    G->>M: run_once(user_choice=0)
+    
+    loop Para cada tipo de relatório (24x)
+        M->>P: launch(firefox, headless)
+        P->>PSO: goto(LOGIN_URL)
+        P->>PSO: fill(username, password)
+        P->>PSO: click(submit)
+        P->>PSO: goto(REPORT_URL)
+        M->>M: gerar_script_final(dateadd)
+        P->>PSO: fill(textarea, SQL)
+        P->>PSO: click("Testar EXCEL")
+        PSO-->>P: download(arquivo.xlsx)
+        P-->>M: csv_file_path
+        M->>CSV: process_csv(path, tipo)
+        CSV-->>M: DataFrame validado
+        M->>DB: upsert_data(df, tabela)
+        M->>M: sleep(5s)
+    end
+    
+    M-->>G: Processo concluído (log)
+```
+
+---
+
+### 4.2 Fluxo de Geração de Insights com IA
+
+```mermaid
+sequenceDiagram
+    participant U as Usuário
+    participant G as GUI
+    participant IA as ia.py
+    participant Q as query_to_dataframe
+    participant DB as MySQL
+    participant LLM as Ollama (gpt-oss:20b)
+    participant UPS as upsert_insights_llm
+
+    U->>G: Clica "Gerar Insights com IA"
+    G->>G: ask_for_sql_query()
+    U->>G: Digita SQL customizado
+    G->>G: ask_for_user_prompt()
+    U->>G: Define escopo de análise
+    G->>IA: generate_insights(df, prompt)
+    IA->>Q: query_to_dataframe(sql)
+    Q->>DB: SELECT ...
+    DB-->>Q: ResultSet
+    Q-->>IA: DataFrame
+    
+    loop Para cada chunk (max 1000 rows)
+        IA->>IA: dataframe_to_text(chunk)
+        IA->>LLM: chat(prompt)
+        LLM-->>IA: JSON (análise, insights, recomendações)
+        IA->>UPS: upsert_data(json_response)
+        UPS->>DB: INSERT INTO INSIGHTS_LLM
+    end
+    
+    IA-->>G: Insights gerados (log)
+```
+
+---
+
+### 4.3 Fluxo de Persistência (Upsert Pattern)
+
+```mermaid
+flowchart LR
+    A[DataFrame Pandas] --> B{Validar Schema}
+    B -->|OK| C[Limpar Dados]
+    B -->|Erro| X[Raise ValueError]
+    C --> D[Converter Datas]
+    D --> E[Converter Booleans Y/N]
+    E --> F[Substituir NaN por NULL]
+    F --> G[Loop por Row]
+    G --> H[INSERT ON DUPLICATE KEY UPDATE]
+    H --> I{Commit}
+    I -->|Sucesso| J[Deletar CSV]
+    I -->|Erro| K[Rollback]
+```
+
+---
+
+## 5. Avaliação de Engenharia (Code Review)
+
+### ✅ Pontos Fortes
+
+| Aspecto | Descrição |
+|---------|-----------|
+| **Modularidade** | Separação clara: cada tabela tem seu próprio handler de upsert |
+| **Idempotência** | Uso consistente de `INSERT ... ON DUPLICATE KEY UPDATE` |
+| **Logging Robusto** | Todas as operações são logadas em `pso_bot.log` |
+| **Resiliência** | Retry com backoff exponencial (`MAX_RETRIES = 3`, `sleep(4 * i)`) |
+| **Cleanup Automático** | CSVs são deletados após processamento bem-sucedido |
+| **Configuração Externa** | `.env` para credenciais e URLs (não hardcoded) |
+| **Auto-criação de DB** | `_ensure_database_exists()` cria banco se necessário |
+
+---
+
+### ⚠️ Pontos de Atenção
+
+| Categoria | Issue | Recomendação |
+|-----------|-------|--------------|
+| **Performance** | Upsert row-by-row via loop Python | Usar `executemany()` ou bulk insert |
+| **SQL Injection** | Scripts SQL usam f-strings com `dateadd_string` | Parametrizar queries |
+| **Duplicação de Código** | 25 upsert handlers com estrutura idêntica | Criar classe base `BaseUpsertHandler` |
+| **Error Handling** | `except Exception as e` genérico | Capturar exceções específicas |
+| **Memory** | DataFrame inteiro em memória | Processar em chunks para arquivos grandes |
+| **Hardcoded** | `timeout=60_000` e seletores CSS em `main.py` | Externalizar para config |
+| **Testing** | Sem testes unitários visíveis | Adicionar pytest com mocks |
+| **Type Hints** | Ausentes em boa parte do código | Adicionar typing para manutenibilidade |
+
+---
+
+### 🔒 Considerações de Segurança
+
+| Risco | Mitigação Atual | Recomendação |
+|-------|-----------------|--------------|
+| Credenciais em `.env` | `.gitignore` impede commit | OK, adicionar vault para produção |
+| SQL dinâmico | f-strings | Parametrizar via prepared statements |
+| Logs com dados sensíveis | Prompt completo logado | Sanitizar logs sensíveis |
+
+---
+
+## Anexo: Estrutura de Diretórios
+
+```
+bot_pso/
+├── .env                          # Credenciais (ignorado no git)
+├── .gitignore
+├── README.md
+├── pso_bot.log                   # Arquivo de log
+├── last_inputs.json              # Últimos inputs do usuário (IA)
+├── data_csv/                     # CSVs temporários
+└── app/
+    ├── main.py                   # Orquestrador principal
+    ├── gui.py                    # Interface Tkinter
+    ├── ia.py                     # Integração Ollama LLM
+    ├── config_default_script.py  # Configuração de script padrão
+    ├── db/
+    │   └── db.py                 # Conexão MySQL
+    ├── downloads/                # Arquivos baixados do PSO
+    ├── sql_scripts/              # 24 geradores de SQL
+    │   ├── realizado_script.py
+    │   ├── orcado_script.py
+    │   ├── planejado_script.py
+    │   └── ...
+    └── actions/
+        ├── process_csv/
+        │   └── process_csv.py    # Leitor/validador CSV
+        ├── query_to_dataframe/
+        │   └── query_to_dataframe.py
+        └── upsert_data/          # 25 handlers de persistência
+            ├── upsert_realizado_data.py
+            ├── upsert_projetos.py
+            ├── upsert_insights_llm.py
+            └── ...
+```
+
+---
+
+*Documentação gerada em 15/12/2025*
