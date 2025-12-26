@@ -223,7 +223,7 @@ def run_once(custom_date_response, days_value, script_choice, user_choice):
         logging.info("Iniciando processo em modo AUTOMÁTICO...")
 
         script_choices = [
-            "Orçado", "Planejado", "Realizado",
+            #"Orçado", "Planejado", "Realizado",
             "AGRUPAMENTO","APONTAMENTOS","ATIVIDADES","ATRIBUICOES","CALENDARIOS",
             "CENTROS_DE_RESULTADO","D_CALEND_PROJ","DESPESA_ORCADA","DESPESA_TIPO","DESPESAS",
             "EMPRESAS","FATURAMENTO","GRREF","INFO_COLABS","PROJETOS","PSO_TAXA","PSO_USU_FUNCOES",

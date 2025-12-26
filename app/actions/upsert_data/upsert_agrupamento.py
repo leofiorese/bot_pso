@@ -3,6 +3,7 @@ import pandas as pd
 from db.db import get_conn
 from datetime import datetime
 import os
+from utils import arquivar_csv
 
 TABLE_COLUMNS = [
     "FUNC_ID",
@@ -107,9 +108,7 @@ def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
             cursor.execute(UPSERT_SQL, data_tuple)
         conn.commit()
         logging.info(f"Upsert realizado com sucesso na tabela {table_name}.")
-        if os.path.exists(csv_file_path):
-            os.remove(csv_file_path)
-            logging.info(f"Arquivo CSV {csv_file_path} excluído com sucesso.")
+        arquivar_csv(csv_file_path, table_name)
     except Exception as e:
         logging.error(f"Erro no upsert: {e}")
         if conn:

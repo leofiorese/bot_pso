@@ -3,6 +3,7 @@ import pandas as pd
 from db.db import get_conn
 from datetime import datetime
 import os
+from utils import arquivar_csv
 
 TABLE_COLUMNS = [
     "PROJ_ID",
@@ -123,8 +124,7 @@ def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
 
         conn.commit()
 
-        if os.path.exists(csv_file_path):
-            os.remove(csv_file_path)
+        arquivar_csv(csv_file_path, table_name)
 
     except Exception as e:
         if conn:
