@@ -27,6 +27,7 @@ from actions.upsert_data.upsert_recursos import TABLE_COLUMNS as TABLE_COLUMNS_R
 from actions.upsert_data.upsert_resumo_de_horas_ativ import TABLE_COLUMNS as TABLE_COLUMNS_RESUMO_DE_HORAS_ATIV
 from actions.upsert_data.upsert_resumo_de_horas import TABLE_COLUMNS as TABLE_COLUMNS_RESUMO_DE_HORAS
 from actions.upsert_data.upsert_taxa_historico import TABLE_COLUMNS as TABLE_COLUMNS_TAXA_HISTORICO
+from actions.upsert_data.upsert_relatorio_de_colaboradores import TABLE_COLUMNS as TABLE_COLUMNS_RELATORIO_DE_COLABORADORES
 
 
 TABLE_MAP = {
@@ -57,6 +58,7 @@ TABLE_MAP = {
     "RESUMO_DE_HORAS_ATIV": TABLE_COLUMNS_RESUMO_DE_HORAS_ATIV,
     "RESUMO_DE_HORAS": TABLE_COLUMNS_RESUMO_DE_HORAS,
     "TAXA_HISTORICO": TABLE_COLUMNS_TAXA_HISTORICO,
+    "RELATORIO_DE_COLABORADORES": TABLE_COLUMNS_RELATORIO_DE_COLABORADORES,
 }
 
 

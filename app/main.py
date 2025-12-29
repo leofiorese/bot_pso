@@ -39,6 +39,7 @@ from actions.upsert_data.upsert_recursos import upsert_data as upsert_data_recur
 from actions.upsert_data.upsert_resumo_de_horas_ativ import upsert_data as upsert_data_resumo_de_horas_ativ
 from actions.upsert_data.upsert_resumo_de_horas import upsert_data as upsert_data_resumo_de_horas
 from actions.upsert_data.upsert_taxa_historico import upsert_data as upsert_data_taxa_historico
+from actions.upsert_data.upsert_relatorio_de_colaboradores import upsert_data as upsert_data_relatorio_de_colaboradores
 
 from sql_scripts.agrupamento_script import gerar_script_final as gerar_script_final_agrupamento
 from sql_scripts.apontamentos_script import gerar_script_final as gerar_script_final_apontamentos
@@ -61,6 +62,8 @@ from sql_scripts.recursos_script import gerar_script_final as gerar_script_final
 from sql_scripts.resumo_de_horas_ativ_script import gerar_script_final as gerar_script_final_resumo_de_horas_ativ
 from sql_scripts.resumo_de_horas_script import gerar_script_final as gerar_script_final_resumo_de_horas
 from sql_scripts.taxa_historico_script import gerar_script_final as gerar_script_final_taxa_historico
+from sql_scripts.relatorio_de_colaboradores_script import gerar_script_final as gerar_script_final_relatorio_de_colaboradores
+
 # ===================================
 
 def get_base_path():
@@ -151,6 +154,7 @@ SCRIPT_GENERATORS = {
     "RESUMO_DE_HORAS_ATIV": gerar_script_final_resumo_de_horas_ativ,
     "RESUMO_DE_HORAS": gerar_script_final_resumo_de_horas,
     "TAXA_HISTORICO": gerar_script_final_taxa_historico,
+    "RELATORIO_DE_COLABORADORES": gerar_script_final_relatorio_de_colaboradores,
 }
 
 UPSERT_HANDLERS = {
@@ -179,6 +183,7 @@ UPSERT_HANDLERS = {
     "RESUMO_DE_HORAS_ATIV":  lambda df, csv: upsert_data_resumo_de_horas_ativ(df, "RESUMO_DE_HORAS_ATIV", csv),
     "RESUMO_DE_HORAS":       lambda df, csv: upsert_data_resumo_de_horas(df, "RESUMO_DE_HORAS", csv),
     "TAXA_HISTORICO":        lambda df, csv: upsert_data_taxa_historico(df, "TAXA_HISTORICO", csv),
+    "RELATORIO_DE_COLABORADORES": lambda df, csv: upsert_data_relatorio_de_colaboradores(df, "RELATORIO_DE_COLABORADORES", csv),
 }
 
 DEFAULTS_30 = {k: "-500" for k in SCRIPT_GENERATORS.keys()}
@@ -227,7 +232,7 @@ def run_once(custom_date_response, days_value, script_choice, user_choice):
             "AGRUPAMENTO","APONTAMENTOS","ATIVIDADES","ATRIBUICOES","CALENDARIOS",
             "CENTROS_DE_RESULTADO","D_CALEND_PROJ","DESPESA_ORCADA","DESPESA_TIPO","DESPESAS",
             "EMPRESAS","FATURAMENTO","GRREF","INFO_COLABS","PROJETOS","PSO_TAXA","PSO_USU_FUNCOES",
-            "RECURSOS","RESUMO_DE_HORAS_ATIV","RESUMO_DE_HORAS","TAXA_HISTORICO",
+            "RECURSOS","RESUMO_DE_HORAS_ATIV","RESUMO_DE_HORAS","TAXA_HISTORICO", "RELATORIO_DE_COLABORADORES"
         ]
 
         last = None

@@ -100,7 +100,7 @@ def run_process_in_thread2(query, user_prompt):
 def ask_for_script_choice(root, custom_date_response, days_value, user_choice):
     script_choice_window = tk.Toplevel(root)
     script_choice_window.title("Escolha do Script")
-    script_choice_window.geometry("420x700")  # aumentado apenas para comportar as novas opções
+    script_choice_window.geometry("420x720")  # aumentado apenas para comportar as novas opções
 
     script_choice_window.bind("<Button-1>", lambda event: reset_inactivity_timer())
     script_choice_window.bind("<KeyPress>", lambda event: reset_inactivity_timer())
@@ -137,6 +137,7 @@ def ask_for_script_choice(root, custom_date_response, days_value, user_choice):
     tk.Radiobutton(frame_radio, text="RESUMO_DE_HORAS_ATIV", variable=script_choice, value="RESUMO_DE_HORAS_ATIV").pack(anchor="w", padx=10)
     tk.Radiobutton(frame_radio, text="RESUMO_DE_HORAS", variable=script_choice, value="RESUMO_DE_HORAS").pack(anchor="w", padx=10)
     tk.Radiobutton(frame_radio, text="TAXA_HISTORICO", variable=script_choice, value="TAXA_HISTORICO").pack(anchor="w", padx=10)
+    tk.Radiobutton(frame_radio, text="RELATORIO_DE_COLABORADORES", variable=script_choice, value="RELATORIO_DE_COLABORADORES").pack(anchor="w", padx=10)
 
     frame_radio.pack(fill="both", expand=True)
 
