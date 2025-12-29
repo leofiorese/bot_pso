@@ -3,7 +3,7 @@ import logging
 def script_sql(dateadd_value):
     
     return f"""
-SELECT * FROM PSO_TAXA_HISTORICO WHERE ALTERADO_EM BETWEEN DATEADD(day, {dateadd_value}, GETDATE()) AND GETDATE()
+SELECT * FROM PSO_TAXA_HISTORICO
 """
 
 def gerar_script_final(dateadd_string):

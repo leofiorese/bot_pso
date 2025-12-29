@@ -155,7 +155,7 @@ def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
                     data_tuple[key] = None 
             cursor.execute(UPSERT_SQL, data_tuple)
         conn.commit()
-        arquivar_csv(csv_file_path, table_name)
+        arquivar_csv(csv_file_path, "CENTROS DE RESULTADO")
     except Exception as e:
         if conn:
             conn.rollback()

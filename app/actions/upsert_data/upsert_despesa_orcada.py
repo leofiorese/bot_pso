@@ -124,7 +124,7 @@ def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
 
         conn.commit()
 
-        arquivar_csv(csv_file_path, table_name)
+        arquivar_csv(csv_file_path, "DESPESA ORÇADA")
 
     except Exception as e:
         if conn:
