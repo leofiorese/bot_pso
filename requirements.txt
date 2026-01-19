@@ -1,0 +1,6 @@
+pandas
+playwright
+mysql-connector-python
+python-dotenv
+openpyxl  # Provavelmente necessário para leitura/gravação de Excel se o pandas for usá-lo
+tabulate # Usado em scripts de log/debug se houver
