@@ -15,9 +15,34 @@ flag_inactivity_checking = False
 
 
 
-def run_process_in_thread(custom_date_response, days_value, script_choice, user_choice):
+def run_process_wrapper(custom_date_response, days_value, script_choice, user_choice, root):
     try:
-        thread = threading.Thread(target=run_once, args=(custom_date_response, days_value, script_choice, user_choice))
+        run_once(custom_date_response, days_value, script_choice, user_choice)
+    except Exception as e:
+        logging.error(f"Erro na execução do processo: {e}")
+    finally:
+        # Verifica a flag do .env
+        auto_close_flag = os.getenv("AUTO_CLOSE_ON_FINISH", "False").lower() == "true"
+        
+        if auto_close_flag:
+            logging.info("Flag AUTO_CLOSE_ON_FINISH ativa. Fechando aplicação...")
+            # Agenda o fechamento na thread principal para evitar problemas com tkinter
+            root.after(1000, lambda: root.destroy())
+        else:
+            logging.info("Processo finalizado. Aplicação permanece aberta (AUTO_CLOSE_ON_FINISH=False).")
+
+def run_process_in_thread(custom_date_response, days_value, script_choice, user_choice, root=None):
+    try:
+        # Se root for None (chamadas antigas que não passavam root), tentamos não quebrar, 
+        # mas a função wrapper precisa do root para agendar o destroy(). 
+        # Idealmente, quem chama deve passar root.
+        
+        if root:
+             thread = threading.Thread(target=run_process_wrapper, args=(custom_date_response, days_value, script_choice, user_choice, root))
+        else:
+             # Fallback comportmento antigo se não passar root (embora vamos atualizar as chamadas)
+             thread = threading.Thread(target=run_once, args=(custom_date_response, days_value, script_choice, user_choice))
+        
         thread.start()
 
         auto_close = tk.Toplevel()
@@ -159,7 +184,7 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice, u
         if submitted:
             return
         submitted = True
-        run_process_in_thread("não", None, script_choice, user_choice)
+        run_process_in_thread("não", None, script_choice, user_choice, root)
 
         logging.info("Nenhuma escolha feita. Usando valor padrão: 4 dias.")
     
@@ -196,7 +221,7 @@ def ask_for_custom_date(root, custom_date_response, days_value, script_choice, u
                 submitted = False
                 return
     
-        run_process_in_thread(custom_date, days_value, script_choice, user_choice)
+        run_process_in_thread(custom_date, days_value, script_choice, user_choice, root)
         custom_date_window.destroy()
 
     submit_button = tk.Button(custom_date_window, text="Confirmar e Iniciar", command=on_submit)
@@ -244,7 +269,7 @@ def create_main_window():
 
     root = tk.Tk()
     root.title("PSOffice Bot")
-    root.attributes("-fullscreen", True)
+    root.state("zoomed")
 
     root.bind("<Button-1>", lambda event: reset_inactivity_timer())
     root.bind("<KeyPress>", lambda event: reset_inactivity_timer())  
@@ -254,7 +279,7 @@ def create_main_window():
     run_button = tk.Button(root, text="Iniciar Pesquisa Personalizada (Apenas um relatório personalizado)", width=60, height=2, command=lambda: [update_user_choice(1), update_flag_inactivity(True), ask_for_script_choice(root, "não", None, user_choice)])
     run_button.pack(pady=10) 
 
-    run_button_automatic = tk.Button(root, text="Iniciar Pesquisa Automática (Todos os relatórios personalizados)", width=60, height=2, command=lambda: [update_user_choice(0), update_flag_inactivity(True), run_process_in_thread("não", None, config_default_script.script_choice_default, user_choice)])
+    run_button_automatic = tk.Button(root, text="Iniciar Pesquisa Automática (Todos os relatórios personalizados)", width=60, height=2, command=lambda: [update_user_choice(0), update_flag_inactivity(True), run_process_in_thread("não", None, config_default_script.script_choice_default, user_choice, root)])
     run_button_automatic.pack(pady=10)
 
 
