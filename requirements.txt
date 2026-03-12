@@ -1,6 +1,45 @@
+# === COMANDOS PARA INSTALAÇÃO ===
+# 1. Instale as dependências do projeto:
+#    pip install -r requirements.txt
+#
+# 2. Instale os navegadores necessários para o Playwright:
+#    playwright install
+#    (Caso falte alguma biblioteca do sistema, rode: playwright install-deps)
+#
+# ==========================================
+# === EXEMPLO DE ARQUIVO .ENV ===
+# Crie um arquivo '.env' na raiz do projeto com o conteúdo abaixo
+# (Substitua os valores de exemplo pelos seus dados reais):
+#
+# # Credenciais
+# PSO_USERNAME=seu_usuario@dominio.com.br
+# PSO_PASSWORD=sua_senha
+# 
+# # URLs
+# PSO_LOGIN_URL=https://psofficeapp.com.br/sandech/core/util/login.do?cdpy=...
+# PSO_REPORT_URL=https://psofficeapp.com.br/sandech/core/admin/usrep.do?...
+# OMIE_LOGIN_URL=https://app.omie.com.br/login/
+# OMIE_REPORT_URL=https://app.omie.com.br/gestao/...
+# 
+# # Opção de exibir o navegador (True = mostra, False = invisível)
+# HEADLESS=True
+# 
+# # Banco de Dados (PostgreSQL)
+# DB_HOST=localhost
+# DB_PORT=5432
+# DB_USER=pmo_admin
+# DB_PASSWORD=sua_senha_banco
+# DB_NAME=pmo_hub
+# DB_POOL_MAX=5
+# DB_POOL_MIN=2
+# 
+# # Configuração de Fechamento Automático
+# AUTO_CLOSE_ON_FINISH=True
+# ==========================================
+
 pandas
 playwright
-mysql-connector-python
+psycopg2-binary>=2.9.9
 python-dotenv
 openpyxl  # Provavelmente necessário para leitura/gravação de Excel se o pandas for usá-lo
 tabulate # Usado em scripts de log/debug se houver

@@ -1,84 +1,23 @@
 import logging
 import pandas as pd
-from db.db import get_conn
-from datetime import datetime
-import os
 from utils import arquivar_csv
+from actions.upsert_data.pg_upsert_utils import bulk_upsert
 
 TABLE_COLUMNS = [
-    "PROJ_ID",
-    "CAL_ID"
+    "PROJ_ID", "CAL_ID"
 ]
 
-CREATE_TABLE_SQL = """
-CREATE TABLE IF NOT EXISTS `D_CALEND_PROJ` (
-    `PROJ_ID` INT,
-    `CAL_ID` INT,
+TABLE_NAME = "D_CALEND_PROJ"
+PK_COLUMNS = ["PROJ_ID"]
+DATE_COLUMNS = []
+BOOLEAN_COLUMNS = []
 
-    `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-    PRIMARY KEY (`PROJ_ID`)
-)
-ENGINE=InnoDB
-DEFAULT CHARSET=utf8mb4
-COLLATE=utf8mb4_unicode_ci;
-"""
-
-UPSERT_SQL = """
-INSERT INTO D_CALEND_PROJ (
-    PROJ_ID, CAL_ID
-) VALUES (
-    %(PROJ_ID)s, %(CAL_ID)s
-)
-ON DUPLICATE KEY UPDATE
-    CAL_ID = VALUES(CAL_ID);
-"""
-
-def create_table(cursor, table_name):
-    try:
-        cursor.execute(CREATE_TABLE_SQL)
-        logging.info(f"Tabela {table_name} criada/verificada.")
-    except Exception as e:
-        logging.error(f"Erro ao criar/verificar a tabela: {e}")
-        raise
-
-def convert_date(value):
-    if isinstance(value, str):
-        try:
-            return datetime.strptime(value, '%d/%m/%Y').strftime('%Y-%m-%d')
-        except ValueError:
-            return None  
-    return value
-
-def clean_data(value, column_name):
-    if pd.isna(value) or value == "" or value is None or pd.isnull(value):
-        return None
-    return value
 
 def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
-    conn = None
-    cursor = None
-    try:
-        conn = get_conn()
-        cursor = conn.cursor()
-        create_table(cursor, table_name)
-        for col in df.columns:
-            df[col] = df[col].apply(lambda x: clean_data(x, col))
-        for _, row in df.iterrows():
-            data_tuple = row.to_dict()
-            for key, value in data_tuple.items():
-                if isinstance(value, float) and pd.isna(value):
-                    data_tuple[key] = None 
-            cursor.execute(UPSERT_SQL, data_tuple)
-        conn.commit()
-        arquivar_csv(csv_file_path, table_name)
-    except Exception as e:
-        if conn:
-            conn.rollback()
-        raise
-    finally:
-        if cursor:
-            cursor.close()
-        if conn:
-            conn.close()
+    bulk_upsert(
+        df=df, table_name=TABLE_NAME,
+        all_columns=TABLE_COLUMNS, pk_columns=PK_COLUMNS,
+        date_columns=DATE_COLUMNS, boolean_columns=BOOLEAN_COLUMNS,
+        csv_file_path=csv_file_path,
+        archive_func=arquivar_csv, archive_name=table_name,
+    )

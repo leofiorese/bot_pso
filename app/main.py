@@ -2,7 +2,6 @@
 import os
 import logging
 import re
-from db.db import get_conn
 from actions.process_csv.process_csv import process_csv
 from actions.upsert_data.upsert_realizado_data import upsert_data as upsert_data_realizado
 from actions.upsert_data.upsert_orcado_data import upsert_data as upsert_data_orcado
