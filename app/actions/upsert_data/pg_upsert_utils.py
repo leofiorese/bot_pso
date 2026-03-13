@@ -3,10 +3,19 @@ Utilitários compartilhados para bulk upsert no PostgreSQL.
 Substitui a lógica row-by-row duplicada nos 25 handlers.
 """
 import logging
+import numpy as np
 import pandas as pd
 from datetime import datetime
 from psycopg2.extras import execute_values
+from psycopg2.extensions import register_adapter, AsIs
 from db.db import get_conn, put_conn
+
+# Registra adaptadores para que psycopg2 aceite tipos numpy nativamente
+register_adapter(np.int64, lambda val: AsIs(int(val)))
+register_adapter(np.int32, lambda val: AsIs(int(val)))
+register_adapter(np.float64, lambda val: AsIs(float(val)))
+register_adapter(np.float32, lambda val: AsIs(float(val)))
+register_adapter(np.bool_, lambda val: AsIs(bool(val)))
 
 
 def convert_date(value):
@@ -125,6 +134,10 @@ def bulk_upsert(df, table_name, all_columns, pk_columns,
         cursor = conn.cursor()
 
         apply_cleaning(df, date_columns=date_columns, boolean_columns=boolean_columns)
+
+        # Remove linhas duplicadas por PK (mantém a última ocorrência)
+        # Necessário porque ON CONFLICT não aceita PKs duplicadas no mesmo batch
+        df = df.drop_duplicates(subset=pk_columns, keep='last')
 
         upsert_sql = build_pg_upsert_sql(table_name, all_columns, pk_columns)
 
