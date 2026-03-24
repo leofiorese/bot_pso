@@ -21,6 +21,7 @@ def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
         df=df, table_name=TABLE_NAME,
         all_columns=TABLE_COLUMNS, pk_columns=PK_COLUMNS,
         date_columns=DATE_COLUMNS, boolean_columns=BOOLEAN_COLUMNS,
+        pk_constraint_name="relatorio_de_colaboradores_pkey",
         csv_file_path=csv_file_path,
-        archive_func=arquivar_csv, archive_name=table_name,
+        archive_func=arquivar_csv, archive_name="RELATORIO DE COLABORADORES",
     )

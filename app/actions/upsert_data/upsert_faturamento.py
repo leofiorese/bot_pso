@@ -45,6 +45,8 @@ DATE_COLUMNS = [
     "DT_EMISSAO_DOC_DED", "DT_COMPETENCIA_DOC_DED",
 ]
 BOOLEAN_COLUMNS = []
+# Colunas com Y/N que são INTEGER no PostgreSQL (não BOOLEAN)
+INT_BOOLEAN_COLUMNS = ["NAO_NIF", "PGTO_PARCELADO_ANTECIPADO", "EXIGIBILIDADE_SUSPENSA"]
 
 
 def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
@@ -52,6 +54,7 @@ def upsert_data(df: pd.DataFrame, table_name: str, csv_file_path: str):
         df=df, table_name=TABLE_NAME,
         all_columns=TABLE_COLUMNS, pk_columns=PK_COLUMNS,
         date_columns=DATE_COLUMNS, boolean_columns=BOOLEAN_COLUMNS,
+        int_boolean_columns=INT_BOOLEAN_COLUMNS,
         csv_file_path=csv_file_path,
         archive_func=arquivar_csv, archive_name=table_name,
     )
